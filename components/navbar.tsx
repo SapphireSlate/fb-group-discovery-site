@@ -40,10 +40,11 @@ export function Navbar() {
         </div>
         
         <div className="ml-auto flex items-center space-x-4">
-          <form className="hidden md:block relative w-72">
+          <form className="hidden md:block relative w-72" action="/discover" method="get">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
+              name="q"
               placeholder="Search groups..."
               className="pl-8"
             />
