@@ -114,33 +114,6 @@ export default function ApiDocsPage() {
               }, null, 2)}
             </pre>
           </div>
-          
-          <div className="mb-8 p-4 border rounded-lg bg-gray-50">
-            <h3 className="text-xl font-medium mb-2">Vote on Group</h3>
-            <code className="block bg-gray-100 p-2 rounded mb-2">POST /api/groups/{'{id}'}/vote</code>
-            <p className="mb-2">Vote on a group (upvote, downvote, or remove vote). Requires authentication.</p>
-            
-            <h4 className="font-medium mt-4 mb-2">Request Body:</h4>
-            <pre className="bg-gray-100 p-2 rounded overflow-x-auto">
-              {JSON.stringify({
-                voteType: "up" // "up", "down", or "remove"
-              }, null, 2)}
-            </pre>
-          </div>
-          
-          <div className="mb-8 p-4 border rounded-lg bg-gray-50">
-            <h3 className="text-xl font-medium mb-2">Review Group</h3>
-            <code className="block bg-gray-100 p-2 rounded mb-2">POST /api/groups/{'{id}'}/review</code>
-            <p className="mb-2">Submit a review for a group. Requires authentication.</p>
-            
-            <h4 className="font-medium mt-4 mb-2">Request Body:</h4>
-            <pre className="bg-gray-100 p-2 rounded overflow-x-auto">
-              {JSON.stringify({
-                rating: 5, // 1-5
-                comment: "This group has been incredibly helpful for my business!"
-              }, null, 2)}
-            </pre>
-          </div>
         </section>
         
         <section className="mb-12">
@@ -174,6 +147,179 @@ export default function ApiDocsPage() {
               <li><code>limit</code> - Maximum number of tags to return (default: 50)</li>
               <li><code>with_group_count</code> - Include group count for each tag (true/false)</li>
             </ul>
+          </div>
+        </section>
+        
+        <section className="mb-12">
+          <h2 className="text-2xl font-semibold mb-4">Reviews</h2>
+          
+          <div className="mb-8 p-4 border rounded-lg bg-gray-50">
+            <h3 className="text-xl font-medium mb-2">List Reviews</h3>
+            <code className="block bg-gray-100 p-2 rounded mb-2">GET /api/reviews</code>
+            <p className="mb-2">Retrieve reviews with optional filtering.</p>
+            
+            <h4 className="font-medium mt-4 mb-2">Query Parameters:</h4>
+            <ul className="list-disc pl-6 mb-4">
+              <li><code>group_id</code> - Filter reviews by group ID</li>
+              <li><code>user_id</code> - Filter reviews by user ID</li>
+              <li><code>limit</code> - Number of results per page (default: 10)</li>
+              <li><code>offset</code> - Offset for pagination</li>
+              <li><code>sort_by</code> - Sort by field (default: created_at)</li>
+              <li><code>order</code> - Sort order: asc, desc (default: desc)</li>
+            </ul>
+            
+            <h4 className="font-medium mt-4 mb-2">Example Response:</h4>
+            <pre className="bg-gray-100 p-2 rounded overflow-x-auto">
+              {JSON.stringify({
+                data: [
+                  {
+                    id: "123",
+                    group_id: "456",
+                    user_id: "789",
+                    rating: 5,
+                    comment: "Great group with helpful content!",
+                    created_at: "2023-04-01T12:00:00Z",
+                    updated_at: null,
+                    users: {
+                      id: "789",
+                      display_name: "John Smith",
+                      avatar_url: "https://example.com/avatar.jpg"
+                    }
+                  }
+                ],
+                pagination: {
+                  total: 50,
+                  offset: 0,
+                  limit: 10
+                }
+              }, null, 2)}
+            </pre>
+          </div>
+          
+          <div className="mb-8 p-4 border rounded-lg bg-gray-50">
+            <h3 className="text-xl font-medium mb-2">Get Review</h3>
+            <code className="block bg-gray-100 p-2 rounded mb-2">GET /api/reviews/{'{id}'}</code>
+            <p className="mb-2">Retrieve a specific review by ID.</p>
+            
+            <h4 className="font-medium mt-4 mb-2">Example Response:</h4>
+            <pre className="bg-gray-100 p-2 rounded overflow-x-auto">
+              {JSON.stringify({
+                data: {
+                  id: "123",
+                  group_id: "456",
+                  user_id: "789",
+                  rating: 5,
+                  comment: "Great group with helpful content!",
+                  created_at: "2023-04-01T12:00:00Z",
+                  updated_at: null,
+                  users: {
+                    id: "789",
+                    display_name: "John Smith",
+                    avatar_url: "https://example.com/avatar.jpg"
+                  },
+                  groups: {
+                    id: "456",
+                    name: "Digital Marketing Experts"
+                  }
+                }
+              }, null, 2)}
+            </pre>
+          </div>
+          
+          <div className="mb-8 p-4 border rounded-lg bg-gray-50">
+            <h3 className="text-xl font-medium mb-2">Create Review</h3>
+            <code className="block bg-gray-100 p-2 rounded mb-2">POST /api/reviews</code>
+            <p className="mb-2">Submit a new review for a group. Requires authentication.</p>
+            
+            <h4 className="font-medium mt-4 mb-2">Request Body:</h4>
+            <pre className="bg-gray-100 p-2 rounded overflow-x-auto">
+              {JSON.stringify({
+                group_id: "456",
+                rating: 5, // 1-5
+                comment: "This group has been incredibly helpful for my business!"
+              }, null, 2)}
+            </pre>
+            
+            <h4 className="font-medium mt-4 mb-2">Example Response:</h4>
+            <pre className="bg-gray-100 p-2 rounded overflow-x-auto">
+              {JSON.stringify({
+                data: {
+                  id: "123",
+                  group_id: "456",
+                  user_id: "789",
+                  rating: 5,
+                  comment: "This group has been incredibly helpful for my business!",
+                  created_at: "2023-04-01T12:00:00Z",
+                  updated_at: null
+                },
+                message: "Review created successfully"
+              }, null, 2)}
+            </pre>
+          </div>
+          
+          <div className="mb-8 p-4 border rounded-lg bg-gray-50">
+            <h3 className="text-xl font-medium mb-2">Update Review</h3>
+            <code className="block bg-gray-100 p-2 rounded mb-2">PUT /api/reviews/{'{id}'}</code>
+            <p className="mb-2">Update an existing review. Requires authentication and user must be the review author.</p>
+            
+            <h4 className="font-medium mt-4 mb-2">Request Body:</h4>
+            <pre className="bg-gray-100 p-2 rounded overflow-x-auto">
+              {JSON.stringify({
+                rating: 4,
+                comment: "Updated: Very good group with helpful content!"
+              }, null, 2)}
+            </pre>
+          </div>
+          
+          <div className="mb-8 p-4 border rounded-lg bg-gray-50">
+            <h3 className="text-xl font-medium mb-2">Delete Review</h3>
+            <code className="block bg-gray-100 p-2 rounded mb-2">DELETE /api/reviews/{'{id}'}</code>
+            <p className="mb-2">Delete a review. Requires authentication and user must be the review author.</p>
+          </div>
+        </section>
+        
+        <section className="mb-12">
+          <h2 className="text-2xl font-semibold mb-4">Votes</h2>
+          
+          <div className="mb-8 p-4 border rounded-lg bg-gray-50">
+            <h3 className="text-xl font-medium mb-2">List Votes</h3>
+            <code className="block bg-gray-100 p-2 rounded mb-2">GET /api/votes</code>
+            <p className="mb-2">Retrieve votes with optional filtering. Authentication required for viewing user-specific votes.</p>
+            
+            <h4 className="font-medium mt-4 mb-2">Query Parameters:</h4>
+            <ul className="list-disc pl-6 mb-4">
+              <li><code>group_id</code> - Filter votes by group ID</li>
+              <li><code>user_id</code> - Filter votes by user ID (requires authentication)</li>
+              <li><code>vote_type</code> - Filter by vote type: upvote, downvote</li>
+              <li><code>limit</code> - Number of results per page (default: 10)</li>
+              <li><code>offset</code> - Offset for pagination</li>
+            </ul>
+          </div>
+          
+          <div className="mb-8 p-4 border rounded-lg bg-gray-50">
+            <h3 className="text-xl font-medium mb-2">Get Specific Vote</h3>
+            <code className="block bg-gray-100 p-2 rounded mb-2">GET /api/votes/{'{groupId}'}/{'{userId}'}</code>
+            <p className="mb-2">Check if a user has voted on a specific group. User authentication required if not checking your own vote.</p>
+          </div>
+          
+          <div className="mb-8 p-4 border rounded-lg bg-gray-50">
+            <h3 className="text-xl font-medium mb-2">Create or Update Vote</h3>
+            <code className="block bg-gray-100 p-2 rounded mb-2">POST /api/votes</code>
+            <p className="mb-2">Submit a new vote or update an existing one. Requires authentication.</p>
+            
+            <h4 className="font-medium mt-4 mb-2">Request Body:</h4>
+            <pre className="bg-gray-100 p-2 rounded overflow-x-auto">
+              {JSON.stringify({
+                group_id: "456",
+                vote_type: "upvote" // "upvote" or "downvote"
+              }, null, 2)}
+            </pre>
+          </div>
+          
+          <div className="mb-8 p-4 border rounded-lg bg-gray-50">
+            <h3 className="text-xl font-medium mb-2">Delete Vote</h3>
+            <code className="block bg-gray-100 p-2 rounded mb-2">DELETE /api/votes/{'{groupId}'}/{'{userId}'}</code>
+            <p className="mb-2">Remove a vote. Requires authentication and user must be the vote author.</p>
           </div>
         </section>
         
