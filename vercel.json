@@ -41,6 +41,6 @@
     "deploymentKeepAlias": false,
     "deploymentSuffixLength": 24,
     "cleanup": true,
-    "cleanupDays": 7
+    "cleanupDays": 2
   }
 } 
