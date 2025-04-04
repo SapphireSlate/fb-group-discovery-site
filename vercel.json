@@ -5,5 +5,42 @@
   "env": {
     "NEXT_PUBLIC_SUPABASE_URL": "https://kdgqzijuukvvvwamtskq.supabase.co",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtkZ3F6aWp1dWt2dnZ3YW10c2txIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE5MzYzNzEsImV4cCI6MjA1NzUxMjM3MX0.kU0DwkSTjj3Sj62OFbv4YWqWM170HDAbPYJtDFfRD3M"
+  },
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "github": {
+    "silent": true,
+    "autoJobCancelation": true
+  },
+  "ignoreCommand": "echo 'Skip linting and typescript errors during deployments'",
+  "git": {
+    "deploymentEnabled": {
+      "main": true
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ],
+  "cli": {
+    "deploymentKeepAlias": false,
+    "deploymentSuffixLength": 24,
+    "cleanup": true,
+    "cleanupDays": 7
   }
 } 
