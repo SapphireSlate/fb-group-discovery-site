@@ -36,11 +36,5 @@
         }
       ]
     }
-  ],
-  "cli": {
-    "deploymentKeepAlias": false,
-    "deploymentSuffixLength": 24,
-    "cleanup": true,
-    "cleanupDays": 2
-  }
+  ]
 } 
