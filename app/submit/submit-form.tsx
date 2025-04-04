@@ -19,9 +19,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { X } from 'lucide-react';
+import { X, ChevronLeft } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Database } from '@/lib/database.types';
+import { Card, CardContent } from '@/components/ui/card';
 
 type Category = Database['public']['Tables']['categories']['Row'];
 type Tag = Database['public']['Tables']['tags']['Row'];
@@ -58,6 +59,7 @@ export default function SubmitGroupForm({ categories, tags, userId }: SubmitGrou
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
   
   // Activity levels for dropdown
   const activityLevels = [
@@ -83,6 +85,9 @@ export default function SubmitGroupForm({ categories, tags, userId }: SubmitGrou
       terms: false,
     },
   });
+  
+  // Get form values for preview
+  const formValues = form.getValues();
   
   // Handle tag addition
   const addTag = () => {
@@ -121,6 +126,19 @@ export default function SubmitGroupForm({ categories, tags, userId }: SubmitGrou
       reader.readAsDataURL(file);
       form.setValue('screenshot', file);
     }
+  };
+  
+  // Show preview before final submission
+  const handleShowPreview = async () => {
+    const isValid = await form.trigger();
+    if (isValid) {
+      setIsPreviewMode(true);
+    }
+  };
+  
+  // Go back to edit mode
+  const handleBackToEdit = () => {
+    setIsPreviewMode(false);
   };
   
   // Handle form submission
@@ -213,13 +231,109 @@ export default function SubmitGroupForm({ categories, tags, userId }: SubmitGrou
     } catch (err: any) {
       console.error('Error submitting group:', err);
       setError(err.message || 'An error occurred while submitting the group');
+      setIsPreviewMode(false); // Go back to edit mode on error
     } finally {
       setLoading(false);
     }
   };
   
+  // Get the selected category name
+  const getSelectedCategoryName = () => {
+    const categoryId = form.getValues('category_id');
+    return categories.find(cat => cat.id === categoryId)?.name || 'None';
+  };
+  
+  // If in preview mode, show the preview
+  if (isPreviewMode) {
+    const values = form.getValues();
+    
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center mb-4">
+          <Button 
+            type="button" 
+            variant="ghost" 
+            onClick={handleBackToEdit} 
+            className="flex items-center"
+          >
+            <ChevronLeft className="mr-1 h-4 w-4" />
+            Back to Edit
+          </Button>
+        </div>
+      
+        <Card>
+          <CardContent className="pt-6">
+            <h2 className="text-2xl font-bold mb-1">{values.name}</h2>
+            
+            <div className="flex items-center mb-4 text-sm text-muted-foreground">
+              <Badge className="mr-2">{getSelectedCategoryName()}</Badge>
+              {values.is_private && <Badge variant="outline" className="mr-2">Private</Badge>}
+              {values.activity_level && <span className="mr-4">Activity: {values.activity_level}</span>}
+              {values.size && <span>Size: {parseInt(values.size).toLocaleString()} members</span>}
+            </div>
+            
+            <div className="mb-6">
+              <h3 className="text-sm font-medium mb-1">Description</h3>
+              <p className="text-muted-foreground whitespace-pre-wrap">{values.description}</p>
+            </div>
+            
+            {selectedTags.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-sm font-medium mb-1">Tags</h3>
+                <div className="flex flex-wrap gap-2">
+                  {selectedTags.map(tag => (
+                    <Badge key={tag} variant="secondary">{tag}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {screenshotPreview && (
+              <div className="mb-6">
+                <h3 className="text-sm font-medium mb-1">Screenshot</h3>
+                <img 
+                  src={screenshotPreview} 
+                  alt="Group Screenshot Preview" 
+                  className="max-h-60 rounded border" 
+                />
+              </div>
+            )}
+            
+            <div className="mb-6">
+              <h3 className="text-sm font-medium mb-1">URL</h3>
+              <a 
+                href={values.url} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-blue-600 hover:underline break-all"
+              >
+                {values.url}
+              </a>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        
+        <div className="flex justify-end mt-4">
+          <Button 
+            onClick={form.handleSubmit(onSubmit)} 
+            disabled={loading}
+          >
+            {loading ? 'Submitting...' : 'Submit Group'}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  
+  // Otherwise show the form
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={form.handleSubmit(handleShowPreview)} className="space-y-6">
       {/* Group Name */}
       <div className="space-y-2">
         <Label htmlFor="name">Group Name *</Label>
@@ -248,31 +362,34 @@ export default function SubmitGroupForm({ categories, tags, userId }: SubmitGrou
           <p className="text-sm text-red-500">{form.formState.errors.url.message}</p>
         )}
         <p className="text-sm text-gray-500">
-          Copy and paste the full URL of the Facebook group
+          Enter the full URL of the Facebook group
         </p>
       </div>
       
-      {/* Group Description */}
+      {/* Description */}
       <div className="space-y-2">
-        <Label htmlFor="description">Group Description *</Label>
+        <Label htmlFor="description">Description *</Label>
         <Textarea
           id="description"
           {...form.register('description')}
-          placeholder="Describe what this group is about and why it's valuable..."
-          className="min-h-[120px]"
+          placeholder="Tell us about this group, what type of content is shared, who it's for..."
+          rows={4}
         />
         {form.formState.errors.description && (
           <p className="text-sm text-red-500">{form.formState.errors.description.message}</p>
         )}
-        <p className="text-sm text-gray-500">
-          Provide a clear description of the group's purpose and benefits (50-1000 characters)
+        <p className="text-sm text-muted-foreground flex justify-between">
+          <span>Describe what makes this group valuable</span>
+          <span className="text-xs">{form.watch('description')?.length || 0}/1000</span>
         </p>
       </div>
       
       {/* Category */}
       <div className="space-y-2">
         <Label htmlFor="category">Category *</Label>
-        <Select onValueChange={(value) => form.setValue('category_id', value)}>
+        <Select
+          onValueChange={(value) => form.setValue('category_id', value)}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Select a category" />
           </SelectTrigger>
@@ -287,44 +404,49 @@ export default function SubmitGroupForm({ categories, tags, userId }: SubmitGrou
         {form.formState.errors.category_id && (
           <p className="text-sm text-red-500">{form.formState.errors.category_id.message}</p>
         )}
-        <p className="text-sm text-gray-500">
-          Choose the category that best fits this group
-        </p>
       </div>
       
       {/* Tags */}
       <div className="space-y-2">
-        <Label>Tags</Label>
-        <div className="flex flex-wrap gap-2 mb-2">
-          {selectedTags.map((tag) => (
-            <Badge key={tag} variant="secondary" className="flex items-center gap-1">
-              {tag}
-              <button 
-                type="button"
-                onClick={() => removeTag(tag)}
-                className="ml-1 rounded-full hover:bg-gray-200 p-0.5"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          ))}
-        </div>
-        <div className="flex gap-2">
+        <Label htmlFor="tags">Tags (up to 5)</Label>
+        <div className="flex">
           <Input
-            placeholder="Add a tag (e.g., AI, Remote Work)"
+            id="tags"
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
-            onKeyPress={(e) => {
+            placeholder="Add tags that describe the group"
+            onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
                 addTag();
               }
             }}
           />
-          <Button type="button" variant="outline" onClick={addTag}>Add</Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={addTag}
+            className="ml-2"
+            disabled={selectedTags.length >= 5}
+          >
+            Add
+          </Button>
         </div>
+        {selectedTags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {selectedTags.map((tag) => (
+              <Badge key={tag} variant="secondary" className="flex items-center gap-1 px-3 py-1">
+                {tag}
+                <X
+                  className="h-3 w-3 cursor-pointer"
+                  onClick={() => removeTag(tag)}
+                />
+              </Badge>
+            ))}
+          </div>
+        )}
         <p className="text-sm text-gray-500">
-          Add up to 5 tags to help others discover this group
+          Add tags to help others find this group
         </p>
       </div>
       
@@ -337,18 +459,17 @@ export default function SubmitGroupForm({ categories, tags, userId }: SubmitGrou
           {...form.register('size')}
           placeholder="Number of members"
         />
-        {form.formState.errors.size && (
-          <p className="text-sm text-red-500">{form.formState.errors.size.message}</p>
-        )}
         <p className="text-sm text-gray-500">
-          Enter the approximate number of members in the group
+          If you know the group size, enter it here
         </p>
       </div>
       
       {/* Activity Level */}
       <div className="space-y-2">
         <Label htmlFor="activity_level">Activity Level</Label>
-        <Select onValueChange={(value) => form.setValue('activity_level', value)}>
+        <Select
+          onValueChange={(value) => form.setValue('activity_level', value)}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Select activity level" />
           </SelectTrigger>
@@ -360,43 +481,41 @@ export default function SubmitGroupForm({ categories, tags, userId }: SubmitGrou
             ))}
           </SelectContent>
         </Select>
-        {form.formState.errors.activity_level && (
-          <p className="text-sm text-red-500">{form.formState.errors.activity_level.message}</p>
-        )}
         <p className="text-sm text-gray-500">
-          How active is this group in terms of posts and engagement?
+          How active is this group?
         </p>
       </div>
       
-      {/* Privacy Setting */}
-      <div className="flex items-center space-x-2">
+      {/* Is Private */}
+      <div className="flex items-start space-x-2">
         <Checkbox
           id="is_private"
           onCheckedChange={(checked) => form.setValue('is_private', checked === true)}
         />
-        <Label htmlFor="is_private">This is a private group</Label>
+        <div>
+          <Label htmlFor="is_private" className="text-sm">
+            This is a private/closed Facebook group
+          </Label>
+        </div>
       </div>
-      <p className="text-sm text-gray-500 -mt-4">
-        Indicate if this group requires approval to join
-      </p>
       
-      {/* Group Screenshot */}
+      {/* Screenshot */}
       <div className="space-y-2">
-        <Label htmlFor="screenshot">Group Screenshot</Label>
+        <Label htmlFor="screenshot">Group Screenshot (Optional)</Label>
         <Input
           id="screenshot"
           type="file"
           accept="image/*"
           onChange={handleScreenshotChange}
         />
-        {form.formState.errors.screenshot && (
-          <p className="text-sm text-red-500">{form.formState.errors.screenshot.message}</p>
-        )}
         <p className="text-sm text-gray-500">
-          Upload a screenshot of the group (optional, max 5MB, JPG or PNG format)
+          Upload a screenshot of the group (max 5MB)
         </p>
+        {form.formState.errors.screenshot && (
+          <p className="text-sm text-red-500">{form.formState.errors.screenshot.message as string}</p>
+        )}
         {screenshotPreview && (
-          <div className="mt-2 relative">
+          <div className="relative mt-2 inline-block">
             <img 
               src={screenshotPreview} 
               alt="Group Screenshot Preview" 
@@ -440,7 +559,7 @@ export default function SubmitGroupForm({ categories, tags, userId }: SubmitGrou
       )}
       
       <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? 'Submitting...' : 'Submit Group'}
+        Preview Submission
       </Button>
     </form>
   );

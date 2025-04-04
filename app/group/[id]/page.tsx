@@ -331,8 +331,26 @@ export default async function GroupPage({ params }: { params: { id: string } }) 
                               </p>
                             </div>
                           </div>
-                          <div className="flex">
-                            {renderStars(review.rating)}
+                          <div className="flex items-center gap-2">
+                            <div className="flex">
+                              {renderStars(review.rating)}
+                            </div>
+                            
+                            {/* Add edit/delete buttons if the review belongs to the current user */}
+                            {userProfile && review.user_id === userProfile.id && (
+                              <div className="flex items-center gap-1 ml-2">
+                                <Link href={`/review/edit/${review.id}?groupId=${group.id}`}>
+                                  <Button variant="ghost" size="sm">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pencil"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                                  </Button>
+                                </Link>
+                                <Link href={`/review/delete/${review.id}?groupId=${group.id}`}>
+                                  <Button variant="ghost" size="sm">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                                  </Button>
+                                </Link>
+                              </div>
+                            )}
                           </div>
                         </div>
                         {review.comment && (
