@@ -5,13 +5,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import dynamic from 'next/dynamic';
-
-// Use dynamic import to avoid "module not found" error during build
-const EmailPreferencesForm = dynamic(() => import('./email-preferences-form'), { 
-  ssr: false,
-  loading: () => <div className="py-10 text-center">Loading form...</div>
-});
+import EmailPreferencesClientPage from './client-page';
 
 export default async function EmailPreferencesPage() {
   // Check if user is authenticated
@@ -45,7 +39,7 @@ export default async function EmailPreferencesPage() {
       </div>
       
       <div className="grid gap-8">
-        <EmailPreferencesForm />
+        <EmailPreferencesClientPage />
       </div>
     </div>
   );

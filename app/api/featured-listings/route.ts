@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { applyApiSecurity, createInternalServerErrorResponse, createUnauthorizedResponse } from '@/lib/security';
@@ -6,7 +6,7 @@ import Stripe from 'stripe';
 
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
+  apiVersion: '2025-02-24.acacia',
 });
 
 /**
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const categoryId = searchParams.get('categoryId');
     
     const cookieStore = cookies();
-    const supabase = createServerClient(cookieStore);
+    const supabase = await createServerClient(cookieStore);
     
     let query = supabase
       .from('featured_listings')
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
     if (securityResponse) return securityResponse;
 
     const cookieStore = cookies();
-    const supabase = createServerClient(cookieStore);
+    const supabase = await createServerClient(cookieStore);
     
     // Get user from session
     const { data: { session } } = await supabase.auth.getSession();

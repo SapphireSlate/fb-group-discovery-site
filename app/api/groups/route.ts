@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { applyApiSecurity, createInternalServerErrorResponse, createUnauthorizedResponse } from '@/lib/security';
 import { groupSubmissionSchema } from '@/lib/validation';
 import { sanitizeText } from '@/lib/utils';
-import { createServerClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/supabase';
 import { validateGroupSubmissionWithCaptcha } from '@/lib/validation';
 import { verifyRecaptcha } from '@/lib/security';
 import { type Database } from '@/lib/database.types';
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
 
     // Create Supabase client
     const cookieStore = cookies();
-    const supabase = createServerClient<Database>(cookieStore);
+    const supabase = await createServerClient(cookieStore);
 
     // Get user info from session
     const { data: { session } } = await supabase.auth.getSession();
@@ -152,9 +152,9 @@ export async function POST(request: NextRequest) {
 
     // Sanitize input data
     const sanitizedData = {
-      name: sanitizeInput(body.name),
-      url: sanitizeInput(body.url),
-      description: sanitizeInput(body.description),
+      name: sanitizeText(body.name),
+      url: sanitizeText(body.url),
+      description: sanitizeText(body.description),
       category_id: body.category_id,
       submitted_by: session.user.id,
       status: 'pending',

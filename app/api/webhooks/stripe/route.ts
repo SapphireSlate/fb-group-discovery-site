@@ -1,11 +1,11 @@
-import { createServerClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import Stripe from 'stripe';
 
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
+  apiVersion: '2025-02-24.acacia',
 });
 
 // CORS headers for cross-origin requests
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     
     // Create Supabase client
     const cookieStore = cookies();
-    const supabase = createServerClient(cookieStore);
+    const supabase = await createServerClient(cookieStore);
     
     // Process different webhook events
     switch (event.type) {
