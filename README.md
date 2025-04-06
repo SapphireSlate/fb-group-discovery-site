@@ -9,7 +9,13 @@ A web application that allows users to discover, share, and rate Facebook groups
 - **Group Directory**: Browse and search for Facebook groups by categories and tags
 - **Voting System**: Upvote, downvote, and rate groups
 - **Search Functionality**: Find groups using keywords, tags, and advanced filters
-- **Analytics**: Track group popularity, ratings, and views
+- **Advanced Analytics**: Comprehensive analytics dashboard with trending groups, growth metrics, user engagement stats, category performance, and review sentiment analysis
+- **Related Groups**: Discover similar groups based on tags, categories, and ratings
+- **Report System**: Report problematic groups that violate community guidelines
+- **User Reputation & Badges**: Earn reputation points and achievement badges for contributions
+- **Community Leaderboard**: See top contributors ranked by reputation and achievements
+- **Email Notification System**: Personalized email notifications with user preference controls
+- **Monetization Features**: Premium memberships, featured listings, and verified group program
 
 ## Tech Stack
 
@@ -17,7 +23,20 @@ A web application that allows users to discover, share, and rate Facebook groups
 - **Backend/API**: Next.js API Routes
 - **Database**: Supabase (PostgreSQL)
 - **Authentication**: Supabase Auth
+- **Payment Processing**: Stripe API, Stripe Agent Toolkit
 - **Deployment**: Vercel, Netlify, or similar
+
+## Payment Integration
+
+This project uses Stripe for payment processing:
+
+- Premium membership subscriptions
+- Featured group listings
+- Verified group program
+
+Detailed documentation for the Stripe integration can be found in [docs/stripe-integration.md](docs/stripe-integration.md).
+
+**Important**: The webhook endpoint is currently set to the Vercel deployment URL. Update this to your custom domain when available.
 
 ## Getting Started
 
@@ -26,6 +45,7 @@ A web application that allows users to discover, share, and rate Facebook groups
 - Node.js 18.17.0 or later
 - npm or yarn
 - Supabase account (free tier)
+- Stripe account (for payment processing)
 
 ### Installation
 
@@ -76,6 +96,11 @@ create table public.users (
   created_at timestamp with time zone default now() not null,
   last_login timestamp with time zone,
   reputation integer default 0,
+  auth_id uuid references auth.users(id),
+  role text,
+  reputation_points integer default 0,
+  reputation_level integer default 1,
+  badges_count integer default 0,
   
   constraint users_email_key unique (email)
 );
@@ -250,6 +275,65 @@ create policy "Users can view all votes"
   using (true);
 ```
 
+#### reports
+```sql
+create table public.reports (
+  id uuid default uuid_generate_v4() primary key,
+  group_id uuid references public.groups not null,
+  user_id uuid references public.users not null,
+  reason text not null,
+  comment text,
+  status text check (status in ('pending', 'in_review', 'resolved', 'dismissed')) default 'pending',
+  created_at timestamp with time zone default now() not null,
+  updated_at timestamp with time zone,
+  resolved_by uuid references public.users,
+  resolved_at timestamp with time zone
+);
+```
+
+#### badges
+```sql
+create table public.badges (
+  id uuid default uuid_generate_v4() primary key,
+  name text not null,
+  description text not null,
+  icon text not null,
+  level integer default 1,
+  points integer default 0,
+  category text not null,
+  created_at timestamp with time zone default now() not null,
+  requirements text,
+  display_order integer default 0
+);
+```
+
+#### user_badges
+```sql
+create table public.user_badges (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references public.users not null,
+  badge_id uuid references public.badges not null,
+  awarded_at timestamp with time zone default now() not null,
+  level integer default 1,
+  times_awarded integer default 1,
+  
+  constraint user_badges_user_id_badge_id_unique unique (user_id, badge_id)
+);
+```
+
+#### reputation_history
+```sql
+create table public.reputation_history (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references public.users not null,
+  points integer not null,
+  reason text not null,
+  source_type text not null,
+  source_id uuid,
+  created_at timestamp with time zone default now() not null
+);
+```
+
 ## Deployment
 
 This project can be easily deployed to Vercel:
@@ -258,6 +342,21 @@ This project can be easily deployed to Vercel:
 2. Connect your repository to Vercel
 3. Configure your environment variables
 4. Deploy
+
+## Feature Documentation
+
+For detailed information about specific features, please refer to the following documentation:
+
+- [Related Groups Feature](./README-related-groups.md)
+- [Report Group Feature](./README-report-group.md)
+- [User Reputation System](./README-reputation-badges.md)
+- [Email Notification System](./README-email-system.md)
+- [Enhanced Admin Dashboard](./README-admin-dashboard.md)
+- [Advanced Analytics](./README-analytics.md)
+- [Enhanced User Profiles](./README-enhanced-profiles.md)
+- [Testing Documentation](./README-testing.md)
+- [Security Implementation](./README-security.md)
+- [Project Roadmap](./README-project-roadmap.md)
 
 ## Contributing
 
@@ -345,3 +444,19 @@ If you see ESLint warnings about unused params in these files, you can add rule 
 ## Project Structure
 
 // ... existing code ...
+
+## Security
+
+The application implements a comprehensive security strategy to protect user data and prevent common web vulnerabilities:
+
+- **Content Sanitization**: All user inputs are sanitized to prevent XSS attacks using DOMPurify
+- **Input Validation**: Strict validation of all user inputs using Zod schemas
+- **CAPTCHA Protection**: reCAPTCHA verification on all sensitive forms to prevent automated attacks
+- **API Security**: Rate limiting, CSRF protection, and security headers
+- **Row Level Security**: Database-level security policies to restrict data access
+- **Security Headers**: Comprehensive set of security headers including CSP
+- **SQL Injection Prevention**: Parameterized queries and input pattern scanning
+
+For detailed security documentation, see:
+- [Security Measures Documentation](./README-security.md)
+- [Security Setup Guide](./README-security-setup.md)

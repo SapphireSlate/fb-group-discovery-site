@@ -3,7 +3,7 @@ import { requireAuth } from '@/lib/auth';
 import { createServerClient } from '@/lib/supabase';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { ArrowLeft, Mail, Calendar, Clock, ExternalLink, Flag } from 'lucide-react';
+import { ArrowLeft, Calendar, Mail, Flag, MessageSquare, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -12,77 +12,80 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Database } from '@/lib/database.types';
-import { formatDistanceToNow } from 'date-fns';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from '@/components/ui/avatar';
+import UserActions from './user-actions';
 
-type User = Database['public']['Tables']['users']['Row'];
-type Group = Database['public']['Tables']['groups']['Row'] & {
-  categories: Database['public']['Tables']['categories']['Row'];
-};
+interface UserDetailPageProps {
+  params: {
+    id: string;
+  };
+}
 
-export default async function AdminUserProfilePage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default async function UserDetailPage({ params }: UserDetailPageProps) {
+  const { id } = params;
+  
   // Check if user is authorized to access admin panel
-  const user = await requireAuth();
+  const adminUser = await requireAuth();
   
   const cookieStore = cookies();
   const supabase = await createServerClient(cookieStore);
   
-  // Get the user's profile to check admin status
-  const { data: profile } = await supabase
+  // Get the admin user's profile to check admin status
+  const { data: adminProfile } = await supabase
     .from('users')
     .select('*')
-    .eq('auth_id', user.id)
+    .eq('auth_id', adminUser.id)
     .single();
   
-  // Check admin status (simple role check - in production you'd have a proper roles table)
-  const isAdmin = profile?.email?.endsWith('@example.com'); // Replace with your actual admin check
+  // Check admin status
+  const isAdmin = adminProfile?.email?.endsWith('@example.com'); // Replace with your actual admin check
   
   if (!isAdmin) {
     redirect('/'); // Redirect non-admins
   }
   
   // Fetch the user details
-  const { data: targetUser } = await supabase
+  const { data: user, error } = await supabase
     .from('users')
     .select('*')
-    .eq('id', params.id)
+    .eq('id', id)
     .single();
   
-  if (!targetUser) {
-    redirect('/admin/users'); // Redirect if user not found
+  if (error || !user) {
+    // Handle user not found
+    redirect('/admin/users');
   }
   
-  // Fetch user's submissions
-  const { data: submissions } = await supabase
+  // Fetch user's submissions (groups)
+  const { data: userGroups } = await supabase
     .from('groups')
-    .select(`
-      *,
-      categories:category_id(*)
-    `)
-    .eq('submitted_by', params.id)
-    .order('submitted_at', { ascending: false });
+    .select('*')
+    .eq('submitted_by', id)
+    .order('created_at', { ascending: false });
   
   // Fetch user's reviews
-  const { data: reviews } = await supabase
+  const { data: userReviews } = await supabase
     .from('reviews')
-    .select(`
-      *,
-      groups(name, id)
-    `)
-    .eq('user_id', params.id)
+    .select('*, groups(*)')
+    .eq('user_id', id)
+    .order('created_at', { ascending: false });
+  
+  // Fetch reports submitted by the user
+  const { data: userReports } = await supabase
+    .from('reports')
+    .select('*')
+    .eq('reported_by', id)
     .order('created_at', { ascending: false });
   
   // Format date helper
@@ -92,18 +95,25 @@ export default async function AdminUserProfilePage({
       year: 'numeric',
       month: 'short',
       day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
   
-  // Time since helper
-  const timeSince = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
-    return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+  // Get user initials for avatar
+  const getUserInitials = (name: string | null) => {
+    if (!name) return 'U';
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
   };
 
   return (
     <div className="container mx-auto py-6">
-      <div className="flex items-center mb-6">
+      <div className="mb-6">
         <Link href="/admin/users">
           <Button variant="ghost" size="sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -112,254 +122,211 @@ export default async function AdminUserProfilePage({
         </Link>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* User Profile */}
-        <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="md:col-span-1">
           <Card>
             <CardHeader>
               <CardTitle>User Profile</CardTitle>
               <CardDescription>
-                User details and account information
+                User information and actions
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col items-center mb-6">
-                <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center mb-4">
-                  <span className="text-3xl font-bold text-muted-foreground">
-                    {targetUser.display_name?.[0] || 'U'}
-                  </span>
-                </div>
-                <h2 className="text-xl font-bold">{targetUser.display_name || 'Unnamed User'}</h2>
-                <p className="text-muted-foreground">{targetUser.email || 'No email'}</p>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="flex items-center">
-                  <Mail className="h-5 w-5 mr-3 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Email</p>
-                    <p>{targetUser.email || 'Not provided'}</p>
-                  </div>
+              <div className="flex flex-col items-center space-y-4">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src={user.avatar_url || ''} alt={user.display_name || 'User'} />
+                  <AvatarFallback className="text-2xl">
+                    {getUserInitials(user.display_name)}
+                  </AvatarFallback>
+                </Avatar>
+                
+                <div className="text-center">
+                  <h3 className="text-xl font-semibold">{user.display_name || 'Unnamed User'}</h3>
+                  <p className="text-sm text-muted-foreground">{user.email || 'No email'}</p>
                 </div>
                 
-                <div className="flex items-center">
-                  <Calendar className="h-5 w-5 mr-3 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Joined</p>
-                    <p>{formatDate(targetUser.created_at)}</p>
+                <div className="flex flex-col gap-2 w-full">
+                  <div className="flex items-center text-sm">
+                    <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
+                    Joined: {formatDate(user.created_at)}
                   </div>
-                </div>
-                
-                <div className="flex items-center">
-                  <Clock className="h-5 w-5 mr-3 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Last Active</p>
-                    <p>{timeSince(targetUser.last_sign_in_at || targetUser.created_at)}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center">
-                  <ExternalLink className="h-5 w-5 mr-3 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Auth ID</p>
-                    <p className="font-mono text-xs break-all">{targetUser.auth_id || 'Unknown'}</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-6 pt-6 border-t">
-                <h3 className="font-medium mb-3">Account Status</h3>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <Badge variant={targetUser.is_verified ? 'default' : 'outline'}>
-                    {targetUser.is_verified ? 'Verified' : 'Unverified'}
-                  </Badge>
                   
-                  {targetUser.email?.endsWith('@example.com') && (
-                    <Badge variant="secondary">Admin</Badge>
-                  )}
+                  <div className="flex items-center text-sm">
+                    <Mail className="mr-2 h-4 w-4 text-muted-foreground" />
+                    Email: {user.is_verified ? 'Verified' : 'Unverified'}
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Admin Actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full"
-                  disabled
-                >
-                  <Flag className="h-4 w-4 mr-2" />
-                  Flag Account
-                </Button>
                 
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full"
-                  disabled
-                >
-                  Reset Password
-                </Button>
-                
-                <Button 
-                  variant="destructive" 
-                  size="sm" 
-                  className="w-full"
-                  disabled
-                >
-                  Suspend Account
-                </Button>
-              </div>
-              
-              <div className="mt-4 text-xs text-center text-muted-foreground">
-                Account management features coming soon
+                <div className="flex flex-col gap-2 w-full">
+                  <UserActions userId={user.id} userEmail={user.email || ''} isLocked={user.is_locked || false} />
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
         
-        {/* User Activity */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Group Submissions</CardTitle>
-              <CardDescription>
-                Groups submitted by this user
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {submissions && submissions.length > 0 ? (
-                <div className="border rounded-lg overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Group Name</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Submitted</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {submissions.map((group) => (
-                        <TableRow key={group.id}>
-                          <TableCell className="font-medium">{group.name}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {group.categories?.name || "Uncategorized"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={
-                              group.status === 'pending' ? 'outline' : 
-                              group.status === 'active' ? 'default' : 'destructive'
-                            }>
-                              {group.status.charAt(0).toUpperCase() + group.status.slice(1)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{formatDate(group.submitted_at)}</TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Link href={`/admin/review/${group.id}`}>
-                                <Button size="sm" variant="outline">
-                                  View
-                                </Button>
-                              </Link>
+        <div className="md:col-span-3">
+          <Tabs defaultValue="groups">
+            <TabsList className="grid grid-cols-4 mb-4">
+              <TabsTrigger value="groups">Groups ({userGroups?.length || 0})</TabsTrigger>
+              <TabsTrigger value="reviews">Reviews ({userReviews?.length || 0})</TabsTrigger>
+              <TabsTrigger value="reports">Reports ({userReports?.length || 0})</TabsTrigger>
+              <TabsTrigger value="activity">Activity Log</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="groups">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Submitted Groups</CardTitle>
+                  <CardDescription>
+                    Groups created by this user
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {userGroups && userGroups.length > 0 ? (
+                    <div className="space-y-4">
+                      {userGroups.map((group) => (
+                        <div key={group.id} className="p-4 border rounded-lg">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="font-medium">
+                                <Link href={`/groups/${group.id}`} className="hover:underline">
+                                  {group.name}
+                                </Link>
+                              </h3>
+                              <p className="text-sm text-muted-foreground">
+                                Created: {formatDate(group.created_at)}
+                              </p>
+                              <p className="text-sm mt-2">{group.description?.substring(0, 150)}...</p>
                             </div>
-                          </TableCell>
-                        </TableRow>
+                            <Badge variant={group.status === 'active' ? 'default' : 
+                                          (group.status === 'pending' ? 'outline' : 'destructive')}>
+                              {group.status}
+                            </Badge>
+                          </div>
+                        </div>
                       ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="text-center py-8 border rounded-lg">
-                  <p className="text-muted-foreground">
-                    This user hasn't submitted any groups yet
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Reviews</CardTitle>
-              <CardDescription>
-                Reviews submitted by this user
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {reviews && reviews.length > 0 ? (
-                <div className="border rounded-lg overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Group</TableHead>
-                        <TableHead>Rating</TableHead>
-                        <TableHead>Comment</TableHead>
-                        <TableHead>Date</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {reviews.map((review) => (
-                        <TableRow key={review.id}>
-                          <TableCell>
-                            <Link 
-                              href={`/group/${review.group_id}`}
-                              className="text-blue-600 hover:underline"
-                            >
-                              {review.groups?.name || 'Unknown Group'}
-                            </Link>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <span className="font-medium">{review.rating}</span>
-                              <span className="text-yellow-500 ml-1">★</span>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <FileText className="mx-auto h-12 w-12 mb-4 opacity-20" />
+                      <p>This user hasn't submitted any groups yet.</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="reviews">
+              <Card>
+                <CardHeader>
+                  <CardTitle>User Reviews</CardTitle>
+                  <CardDescription>
+                    Reviews submitted by this user
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {userReviews && userReviews.length > 0 ? (
+                    <div className="space-y-4">
+                      {userReviews.map((review) => (
+                        <div key={review.id} className="p-4 border rounded-lg">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="font-medium">
+                                Review for: <Link href={`/groups/${review.group_id}`} className="hover:underline">
+                                  {review.groups?.name || 'Unknown Group'}
+                                </Link>
+                              </h3>
+                              <div className="flex items-center mt-1">
+                                <div className="flex">
+                                  {Array.from({ length: 5 }).map((_, i) => (
+                                    <span key={i} className={`text-lg ${i < (review.rating || 0) ? 'text-yellow-500' : 'text-gray-300'}`}>
+                                      ★
+                                    </span>
+                                  ))}
+                                </div>
+                                <span className="ml-2 text-sm text-muted-foreground">
+                                  {formatDate(review.created_at)}
+                                </span>
+                              </div>
+                              <p className="text-sm mt-2">{review.content}</p>
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <p className="truncate max-w-[200px]">
-                              {review.comment || 'No comment'}
-                            </p>
-                          </TableCell>
-                          <TableCell>{formatDate(review.created_at)}</TableCell>
-                        </TableRow>
+                          </div>
+                        </div>
                       ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="text-center py-8 border rounded-lg">
-                  <p className="text-muted-foreground">
-                    This user hasn't submitted any reviews yet
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Activity Log</CardTitle>
-              <CardDescription>
-                Recent user activity
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 border rounded-lg">
-                <p className="text-muted-foreground">
-                  Activity logging coming soon
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <MessageSquare className="mx-auto h-12 w-12 mb-4 opacity-20" />
+                      <p>This user hasn't submitted any reviews yet.</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="reports">
+              <Card>
+                <CardHeader>
+                  <CardTitle>User Reports</CardTitle>
+                  <CardDescription>
+                    Reports submitted by this user
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {userReports && userReports.length > 0 ? (
+                    <div className="space-y-4">
+                      {userReports.map((report) => (
+                        <div key={report.id} className="p-4 border rounded-lg">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="font-medium">
+                                <Badge variant="outline" className="mr-2">
+                                  {report.type}
+                                </Badge>
+                                {report.title || 'Untitled Report'}
+                              </h3>
+                              <p className="text-sm text-muted-foreground">
+                                Submitted: {formatDate(report.created_at)}
+                              </p>
+                              <p className="text-sm mt-2">{report.description}</p>
+                              <div className="mt-2">
+                                <Badge variant={report.status === 'pending' ? 'outline' : 
+                                              (report.status === 'resolved' ? 'default' : 'secondary')}>
+                                  {report.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Flag className="mx-auto h-12 w-12 mb-4 opacity-20" />
+                      <p>This user hasn't submitted any reports yet.</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="activity">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Activity Log</CardTitle>
+                  <CardDescription>
+                    Recent user activity on the platform
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>Activity log will be implemented in a future update.</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>

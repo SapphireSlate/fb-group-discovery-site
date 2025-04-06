@@ -4,7 +4,7 @@ import { createServerClient } from '@/lib/supabase';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ChevronRight, CheckCircle, XCircle, AlertCircle, Eye, ArrowUpDown, Search } from 'lucide-react';
+import { ChevronRight, CheckCircle, XCircle, AlertCircle, Eye, ArrowUpDown, Search, Flag, BarChart, BarChart3, Clock, FolderKanban, Layers, PieChart, Settings, User, UserRound, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -59,444 +59,315 @@ export default async function AdminDashboardPage() {
     redirect('/'); // Redirect non-admins
   }
   
-  // Fetch pending submissions
-  const { data: pendingGroups } = await supabase
-    .from('groups')
-    .select(`
-      *,
-      categories:category_id(*),
-      users:submitted_by(*)
-    `)
-    .eq('status', 'pending')
-    .order('submitted_at', { ascending: false });
-  
-  // Fetch active groups
-  const { data: activeGroups } = await supabase
-    .from('groups')
-    .select(`
-      *,
-      categories:category_id(*),
-      users:submitted_by(*)
-    `)
-    .eq('status', 'active')
-    .order('submitted_at', { ascending: false })
-    .limit(10);
-  
-  // Fetch removed groups
-  const { data: removedGroups } = await supabase
-    .from('groups')
-    .select(`
-      *,
-      categories:category_id(*),
-      users:submitted_by(*)
-    `)
-    .eq('status', 'removed')
-    .order('submitted_at', { ascending: false })
-    .limit(10);
-  
-  // Fetch statistics
-  const { count: totalGroups } = await supabase
-    .from('groups')
-    .select('*', { count: 'exact', head: true });
-  
-  const { count: totalUsers } = await supabase
+  // Fetch stats for dashboard
+  const { data: groupStats } = await supabase
+    .rpc('get_group_stats')
+    .single();
+    
+  const { data: userCount } = await supabase
     .from('users')
     .select('*', { count: 'exact', head: true });
-  
-  const { count: totalReviews } = await supabase
+    
+  const { data: reviewCount } = await supabase
     .from('reviews')
     .select('*', { count: 'exact', head: true });
   
-  // Format date helper
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
+  // Fetch pending, in review, resolved, and dismissed report counts
+  const { data: reportCounts } = await supabase.rpc('get_report_counts').single();
+  
+  // Calculate today's new accounts
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const { count: newAccountsToday } = await supabase
+    .from('users')
+    .select('*', { count: 'exact', head: true })
+    .gte('created_at', today.toISOString());
+
+  // Fetch popular groups
+  const { data: popularGroups } = await supabase
+    .from('groups')
+    .select('id, name, description, member_count, view_count')
+    .eq('status', 'active')
+    .order('view_count', { ascending: false })
+    .limit(5);
+    
+  // Fetch recent active users
+  const { data: activeUsers } = await supabase
+    .from('users')
+    .select('id, display_name, email, last_sign_in_at, avatar_url')
+    .order('last_sign_in_at', { ascending: false })
+    .limit(5);
 
   return (
     <div className="container mx-auto py-6">
-      <h1 className="text-3xl font-bold mb-1">Admin Dashboard</h1>
-      <p className="text-muted-foreground mb-6">Manage submissions and monitor site activity</p>
-      
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="flex flex-col gap-8">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <div className="flex items-center gap-2">
+            <Link href="/">
+              <Button variant="outline">Back to Site</Button>
+            </Link>
+          </div>
+        </div>
+        
+        {/* Stats Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Groups</p>
+                  <p className="text-2xl font-bold">{groupStats?.total_groups || 0}</p>
+                </div>
+                <Layers className="h-8 w-8 text-muted-foreground opacity-50" />
+              </div>
+              <div className="mt-4 flex items-center text-xs text-muted-foreground">
+                <Clock className="mr-1 h-3 w-3" />
+                <span>
+                  {groupStats?.pending_groups || 0} pending approval
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Users</p>
+                  <p className="text-2xl font-bold">{userCount?.count || 0}</p>
+                </div>
+                <UserRound className="h-8 w-8 text-muted-foreground opacity-50" />
+              </div>
+              <div className="mt-4 flex items-center text-xs text-muted-foreground">
+                <Clock className="mr-1 h-3 w-3" />
+                <span>
+                  {newAccountsToday || 0} new today
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Reviews</p>
+                  <p className="text-2xl font-bold">{reviewCount?.count || 0}</p>
+                </div>
+                <BarChart3 className="h-8 w-8 text-muted-foreground opacity-50" />
+              </div>
+              <div className="mt-4 flex items-center text-xs text-muted-foreground">
+                <BarChart className="mr-1 h-3 w-3" />
+                <span>
+                  View analytics for more details
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Pending Reports</p>
+                  <p className="text-2xl font-bold">{reportCounts?.pending || 0}</p>
+                </div>
+                <Flag className="h-8 w-8 text-muted-foreground opacity-50" />
+              </div>
+              <div className="mt-4 flex items-center text-xs">
+                <Link href="/admin/reports" className="text-primary hover:underline">
+                  View all reports
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        {/* Quick Actions */}
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-muted-foreground text-sm font-medium">Total Groups</CardTitle>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Common tasks and moderation tools</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{totalGroups}</div>
+          <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Link href="/admin/users">
+              <div className="flex flex-col items-center justify-center p-4 border rounded-lg hover:bg-accent transition-colors">
+                <UserRound className="h-10 w-10 mb-2 text-primary" />
+                <p className="font-medium">Manage Users</p>
+              </div>
+            </Link>
+            
+            <Link href="/admin/groups">
+              <div className="flex flex-col items-center justify-center p-4 border rounded-lg hover:bg-accent transition-colors">
+                <Layers className="h-10 w-10 mb-2 text-primary" />
+                <p className="font-medium">Review Groups</p>
+              </div>
+            </Link>
+            
+            <Link href="/admin/categories">
+              <div className="flex flex-col items-center justify-center p-4 border rounded-lg hover:bg-accent transition-colors">
+                <FolderKanban className="h-10 w-10 mb-2 text-primary" />
+                <p className="font-medium">Manage Categories</p>
+              </div>
+            </Link>
+            
+            <Link href="/admin/reports/dashboard">
+              <div className="flex flex-col items-center justify-center p-4 border rounded-lg hover:bg-accent transition-colors">
+                <PieChart className="h-10 w-10 mb-2 text-primary" />
+                <p className="font-medium">Reports Analytics</p>
+              </div>
+            </Link>
           </CardContent>
         </Card>
+        
+        {/* Reports Overview */}
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-muted-foreground text-sm font-medium">Total Users</CardTitle>
+          <CardHeader>
+            <CardTitle>Reports Overview</CardTitle>
+            <CardDescription>Status of user reported content</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{totalUsers}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Link href="/admin/reports?status=pending" className="hover:no-underline">
+                <div className="flex items-center p-4 border rounded-lg hover:bg-accent transition-colors">
+                  <Clock className="h-8 w-8 text-amber-500 mr-4" />
+                  <div>
+                    <p className="font-medium">Pending</p>
+                    <p className="text-2xl font-bold">{reportCounts?.pending || 0}</p>
+                  </div>
+                </div>
+              </Link>
+              
+              <Link href="/admin/reports?status=in_review" className="hover:no-underline">
+                <div className="flex items-center p-4 border rounded-lg hover:bg-accent transition-colors">
+                  <User className="h-8 w-8 text-blue-500 mr-4" />
+                  <div>
+                    <p className="font-medium">In Review</p>
+                    <p className="text-2xl font-bold">{reportCounts?.in_review || 0}</p>
+                  </div>
+                </div>
+              </Link>
+              
+              <Link href="/admin/reports?status=resolved" className="hover:no-underline">
+                <div className="flex items-center p-4 border rounded-lg hover:bg-accent transition-colors">
+                  <CheckCircle className="h-8 w-8 text-green-500 mr-4" />
+                  <div>
+                    <p className="font-medium">Resolved</p>
+                    <p className="text-2xl font-bold">{reportCounts?.resolved || 0}</p>
+                  </div>
+                </div>
+              </Link>
+              
+              <Link href="/admin/reports?status=dismissed" className="hover:no-underline">
+                <div className="flex items-center p-4 border rounded-lg hover:bg-accent transition-colors">
+                  <XCircle className="h-8 w-8 text-red-500 mr-4" />
+                  <div>
+                    <p className="font-medium">Dismissed</p>
+                    <p className="text-2xl font-bold">{reportCounts?.dismissed || 0}</p>
+                  </div>
+                </div>
+              </Link>
+            </div>
+            
+            <div className="mt-4 flex justify-between items-center">
+              <Link href="/admin/reports" className="text-primary hover:underline">
+                View all reports
+              </Link>
+              <Link href="/admin/reports/dashboard">
+                <Button variant="outline" size="sm">
+                  <PieChart className="h-4 w-4 mr-2" />
+                  Reports Analytics
+                </Button>
+              </Link>
+            </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-muted-foreground text-sm font-medium">Total Reviews</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{totalReviews}</div>
-          </CardContent>
-        </Card>
-      </div>
-      
-      {/* Main Content */}
-      <Tabs defaultValue="pending">
-        <TabsList className="mb-6">
-          <TabsTrigger value="pending">
-            Pending Submissions 
-            {pendingGroups && pendingGroups.length > 0 && (
-              <Badge variant="destructive" className="ml-2">{pendingGroups.length}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="active">Active Groups</TabsTrigger>
-          <TabsTrigger value="removed">Removed Groups</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-        </TabsList>
         
-        {/* Pending Submissions Tab */}
-        <TabsContent value="pending">
-          <div className="bg-muted/50 rounded-lg p-4 mb-6">
-            <h2 className="font-medium mb-2">Pending Submissions</h2>
-            <p className="text-muted-foreground text-sm">
-              Review and approve or reject new group submissions. All new submissions require manual approval.
-            </p>
-          </div>
+        {/* Main Tabs */}
+        <Tabs defaultValue="groups">
+          <TabsList>
+            <TabsTrigger value="groups">Recent Groups</TabsTrigger>
+            <TabsTrigger value="users">Active Users</TabsTrigger>
+          </TabsList>
           
-          {pendingGroups && pendingGroups.length > 0 ? (
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Group</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Submitted By</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pendingGroups.map((group) => (
-                    <TableRow key={group.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-muted rounded overflow-hidden relative">
-                            {group.screenshot_url ? (
-                              <Image
-                                src={group.screenshot_url}
-                                alt={group.name}
-                                fill
-                                className="object-cover"
-                              />
-                            ) : (
-                              <div className="flex items-center justify-center h-full text-muted-foreground">
-                                <AlertCircle className="h-4 w-4" />
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <div className="font-medium">{group.name}</div>
-                            <div className="text-xs text-muted-foreground truncate max-w-[200px]">
-                              {group.url}
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {group.categories?.name || "Uncategorized"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-medium">{group.users?.display_name}</div>
-                        <div className="text-xs text-muted-foreground">{group.users?.email}</div>
-                      </TableCell>
-                      <TableCell>{formatDate(group.submitted_at)}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Link href={`/admin/review/${group.id}`}>
-                            <Button size="sm" variant="outline">
-                              <Eye className="h-4 w-4 mr-1" />
-                              Review
-                            </Button>
-                          </Link>
-                          <AdminGroupAction 
-                            groupId={group.id} 
-                            action="approve" 
-                          />
-                          <AdminGroupAction 
-                            groupId={group.id} 
-                            action="reject" 
-                          />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <div className="text-center py-12 border rounded-lg">
-              <h3 className="text-lg font-medium">No pending submissions</h3>
-              <p className="text-muted-foreground mt-1">
-                All submissions have been reviewed
-              </p>
-            </div>
-          )}
-        </TabsContent>
-        
-        {/* Active Groups Tab */}
-        <TabsContent value="active">
-          <div className="flex justify-between mb-6">
-            <h2 className="text-lg font-medium">Active Groups</h2>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Search groups..."
-                className="w-64"
-              />
-              <Button variant="outline">
-                <Search className="h-4 w-4 mr-2" />
-                Search
-              </Button>
-            </div>
-          </div>
-          
-          {activeGroups && activeGroups.length > 0 ? (
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>
-                      <div className="flex items-center">
-                        Group
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      </div>
-                    </TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Members</TableHead>
-                    <TableHead>Upvotes</TableHead>
-                    <TableHead>Views</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {activeGroups.map((group) => (
-                    <TableRow key={group.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-muted rounded overflow-hidden relative">
-                            {group.screenshot_url ? (
-                              <Image
-                                src={group.screenshot_url}
-                                alt={group.name}
-                                fill
-                                className="object-cover"
-                              />
-                            ) : (
-                              <div className="flex items-center justify-center h-full text-muted-foreground">
-                                <AlertCircle className="h-4 w-4" />
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <div className="font-medium">{group.name}</div>
-                            <div className="text-xs text-muted-foreground">
-                              Added {formatDate(group.submitted_at)}
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {group.categories?.name || "Uncategorized"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{group.size?.toLocaleString() || "Unknown"}</TableCell>
-                      <TableCell>{group.upvotes}</TableCell>
-                      <TableCell>{group.view_count}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Link href={`/group/${group.id}`}>
-                            <Button size="sm" variant="outline">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          <AdminGroupAction 
-                            groupId={group.id} 
-                            action="remove" 
-                          />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <div className="text-center py-12 border rounded-lg">
-              <h3 className="text-lg font-medium">No active groups</h3>
-              <p className="text-muted-foreground mt-1">
-                There are no active groups in the system
-              </p>
-            </div>
-          )}
-          
-          <div className="mt-4 text-center">
-            <Button variant="outline">Load More</Button>
-          </div>
-        </TabsContent>
-        
-        {/* Removed Groups Tab */}
-        <TabsContent value="removed">
-          <div className="bg-muted/50 rounded-lg p-4 mb-6">
-            <h2 className="font-medium mb-2">Removed Groups</h2>
-            <p className="text-muted-foreground text-sm">
-              These groups have been removed from the directory. You can restore them if needed.
-            </p>
-          </div>
-          
-          {removedGroups && removedGroups.length > 0 ? (
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Group</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Removed Date</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {removedGroups.map((group) => (
-                    <TableRow key={group.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-muted rounded overflow-hidden relative">
-                            {group.screenshot_url ? (
-                              <Image
-                                src={group.screenshot_url}
-                                alt={group.name}
-                                fill
-                                className="object-cover"
-                              />
-                            ) : (
-                              <div className="flex items-center justify-center h-full text-muted-foreground">
-                                <AlertCircle className="h-4 w-4" />
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <div className="font-medium">{group.name}</div>
-                            <div className="text-xs text-muted-foreground truncate max-w-[200px]">
-                              {group.url}
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {group.categories?.name || "Uncategorized"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{formatDate(group.last_verified || group.submitted_at)}</TableCell>
-                      <TableCell>
-                        <AdminGroupAction 
-                          groupId={group.id} 
-                          action="restore" 
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <div className="text-center py-12 border rounded-lg">
-              <h3 className="text-lg font-medium">No removed groups</h3>
-              <p className="text-muted-foreground mt-1">
-                There are no removed groups in the system
-              </p>
-            </div>
-          )}
-        </TabsContent>
-        
-        {/* Analytics Tab */}
-        <TabsContent value="analytics">
-          <div className="bg-muted/50 rounded-lg p-4 mb-6">
-            <h2 className="font-medium mb-2">Analytics (Coming Soon)</h2>
-            <p className="text-muted-foreground text-sm">
-              Detailed analytics will be available in a future update.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Groups by Category</CardTitle>
-                <CardDescription>
-                  Distribution of groups across categories
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-80 flex items-center justify-center">
-                <div className="text-center text-muted-foreground">
-                  Chart visualization coming soon
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>User Growth</CardTitle>
-                <CardDescription>
-                  New user registrations over time
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-80 flex items-center justify-center">
-                <div className="text-center text-muted-foreground">
-                  Chart visualization coming soon
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Group Submissions</CardTitle>
-                <CardDescription>
-                  Number of new groups submitted over time
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-80 flex items-center justify-center">
-                <div className="text-center text-muted-foreground">
-                  Chart visualization coming soon
-                </div>
-              </CardContent>
-            </Card>
-            
+          <TabsContent value="groups">
             <Card>
               <CardHeader>
                 <CardTitle>Popular Groups</CardTitle>
-                <CardDescription>
-                  Most viewed and upvoted groups
-                </CardDescription>
+                <CardDescription>Top performing groups by view count</CardDescription>
               </CardHeader>
-              <CardContent className="h-80 flex items-center justify-center">
-                <div className="text-center text-muted-foreground">
-                  Chart visualization coming soon
+              <CardContent>
+                <div className="space-y-4">
+                  {popularGroups?.map((group) => (
+                    <div key={group.id} className="flex items-start justify-between border-b pb-4">
+                      <div>
+                        <Link href={`/groups/${group.id}`} className="font-medium hover:underline">
+                          {group.name}
+                        </Link>
+                        <p className="text-sm text-muted-foreground line-clamp-1">
+                          {group.description}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium">{group.view_count} views</p>
+                        <p className="text-xs text-muted-foreground">{group.member_count} members</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+          </TabsContent>
+          
+          <TabsContent value="users">
+            <Card>
+              <CardHeader>
+                <CardTitle>Recently Active Users</CardTitle>
+                <CardDescription>Users with recent login activity</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {activeUsers?.map((user) => (
+                    <div key={user.id} className="flex items-center justify-between border-b pb-4">
+                      <div className="flex items-center">
+                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mr-3">
+                          {user.avatar_url ? (
+                            <img 
+                              src={user.avatar_url} 
+                              alt={user.display_name || 'User avatar'} 
+                              className="h-10 w-10 rounded-full"
+                            />
+                          ) : (
+                            <Users className="h-5 w-5 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div>
+                          <Link href={`/admin/users/${user.id}`} className="font-medium hover:underline">
+                            {user.display_name || 'Unnamed User'}
+                          </Link>
+                          <p className="text-sm text-muted-foreground">
+                            {user.email || 'No email'}
+                          </p>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">
+                          Last active: {user.last_sign_in_at 
+                            ? new Date(user.last_sign_in_at).toLocaleDateString() 
+                            : 'Never'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 } 

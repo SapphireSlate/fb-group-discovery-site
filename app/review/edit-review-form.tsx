@@ -8,6 +8,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { getSupabaseBrowser } from '@/lib/supabase';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Database } from '@/lib/database.types';
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { Recaptcha } from "@/components/ui/recaptcha";
+import { sanitizeInput } from "@/lib/utils";
 
 type Review = Database['public']['Tables']['reviews']['Row'] & {
   groups?: {
@@ -29,35 +32,47 @@ export default function EditReviewForm({ review, userId }: EditReviewFormProps) 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setSuccess(false);
+    setCaptchaError(null);
     
     if (rating === 0) {
       setError('Please select a rating');
+      setIsLoading(false);
       return;
     }
     
-    setIsLoading(true);
-    setError(null);
+    if (!captchaToken) {
+      setCaptchaError('Please complete the CAPTCHA verification');
+      setIsLoading(false);
+      return;
+    }
     
     try {
-      const supabase = getSupabaseBrowser();
+      const supabase = createClientComponentClient();
       
-      // Update the review
-      const { error: reviewError } = await supabase
+      // Sanitize the input
+      const sanitizedComment = sanitizeInput(comment);
+      
+      // Update the review with CAPTCHA token for verification
+      const { error: updateError } = await supabase
         .from('reviews')
         .update({
           rating,
-          comment: comment.trim() || null,
-          updated_at: new Date().toISOString()
+          comment: sanitizedComment,
+          updated_at: new Date().toISOString(),
+          recaptcha_token: captchaToken,
         })
         .eq('id', review.id)
-        .eq('user_id', userId); // Safety check
+        .eq('user_id', userId);
       
-      if (reviewError) {
-        throw reviewError;
-      }
+      if (updateError) throw updateError;
       
       // Recalculate the average rating for the group
       const { data: groupReviews } = await supabase
@@ -73,12 +88,14 @@ export default function EditReviewForm({ review, userId }: EditReviewFormProps) 
         await supabase
           .from('groups')
           .update({
-            average_rating: averageRating
+            average_rating: averageRating,
+            review_count: groupReviews.length
           })
           .eq('id', review.group_id);
       }
       
       setSuccess(true);
+      setCaptchaToken(null);
       
       // Redirect back to the group page after a short delay
       setTimeout(() => {
@@ -86,7 +103,8 @@ export default function EditReviewForm({ review, userId }: EditReviewFormProps) 
         router.refresh();
       }, 1500);
     } catch (err: any) {
-      setError(err.message || 'An error occurred while updating your review');
+      console.error('Error updating review:', err);
+      setError(err.message || 'Failed to update review. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -147,6 +165,12 @@ export default function EditReviewForm({ review, userId }: EditReviewFormProps) 
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
+          
+          <Recaptcha 
+            onChange={setCaptchaToken}
+            errorMessage={captchaError}
+            resetOnError={true}
+          />
           
           <div className="flex space-x-3">
             <Button type="submit" disabled={isLoading}>

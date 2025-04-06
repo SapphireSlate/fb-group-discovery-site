@@ -182,4 +182,116 @@ function MyForm() {
 - [React Documentation](https://react.dev)
 - [TypeScript Documentation](https://www.typescriptlang.org/docs/)
 - [Supabase Documentation](https://supabase.com/docs)
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs) 
+- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+
+# Security Implementation
+
+## CAPTCHA Protection
+
+We've implemented reCAPTCHA protection on all sensitive forms in the application. When building new forms that handle sensitive operations, make sure to:
+
+1. Import the reusable CAPTCHA component:
+   ```tsx
+   import { Recaptcha } from '@/components/ui/recaptcha';
+   ```
+
+2. Add state management for the CAPTCHA token:
+   ```tsx
+   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+   const [captchaError, setCaptchaError] = useState<string | null>(null);
+   ```
+
+3. Add the Recaptcha component to your form:
+   ```tsx
+   <Recaptcha 
+     onChange={setCaptchaToken}
+     errorMessage={captchaError}
+     resetOnError={true}
+   />
+   ```
+
+4. Validate the token before submitting:
+   ```tsx
+   if (!captchaToken) {
+     setCaptchaError('Please complete the CAPTCHA verification');
+     return;
+   }
+   ```
+
+5. When creating a new API endpoint, always verify CAPTCHA tokens server-side using:
+   ```tsx
+   import { verifyRecaptcha } from '@/lib/security';
+   
+   // In your API route
+   const isCaptchaValid = await verifyRecaptcha(recaptchaToken);
+   if (!isCaptchaValid) {
+     return NextResponse.json(
+       { message: 'CAPTCHA verification failed' },
+       { status: 400 }
+     );
+   }
+   ```
+
+## Input Validation and Sanitization
+
+The application uses Zod schemas for validation and DOMPurify for sanitization. Always:
+
+1. Define validation schemas in `lib/validation.ts`:
+   ```typescript
+   export const myFormSchema = z.object({
+     field1: textInputSchema({ min: 3, max: 100 }),
+     field2: z.boolean(),
+     recaptchaToken: captchaSchema
+   });
+   ```
+
+2. Sanitize user inputs using the utility functions:
+   ```typescript
+   import { sanitizeInput, sanitizeHtml } from '@/lib/utils';
+   
+   // For regular text inputs
+   const safeText = sanitizeInput(userInput);
+   
+   // For HTML content (if allowed)
+   const safeHtml = sanitizeHtml(userHtmlContent);
+   ```
+
+3. Check for SQL injection patterns:
+   ```typescript
+   import { hasSqlInjectionPatterns } from '@/lib/utils';
+   
+   if (hasSqlInjectionPatterns(userInput)) {
+     return errorResponse('Invalid input');
+   }
+   ```
+
+## API Security
+
+When creating new API endpoints, always:
+
+1. Apply the standard security checks using:
+   ```typescript
+   import { applyApiSecurity } from '@/lib/security';
+   
+   export async function POST(request: Request) {
+     const securityResponse = await applyApiSecurity(request, {
+       rateLimit: 60,             // Optional: Custom rate limit
+       requireAuth: true,         // Optional: Require authentication
+       checkSqlInjection: true    // Optional: Check for SQL injection
+     });
+     
+     if (securityResponse) return securityResponse;
+     
+     // Your API logic here
+   }
+   ```
+
+2. Structure your API response using standard formats:
+   ```typescript
+   return NextResponse.json(
+     { success: true, data: result },
+     { status: 200 }
+   );
+   ```
+
+For detailed security documentation, refer to `README-security.md` and `README-security-setup.md`. 

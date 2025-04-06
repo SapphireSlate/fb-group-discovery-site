@@ -2,10 +2,6 @@
   "version": 2,
   "framework": "nextjs",
   "outputDirectory": ".next",
-  "env": {
-    "NEXT_PUBLIC_SUPABASE_URL": "https://kdgqzijuukvvvwamtskq.supabase.co",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtkZ3F6aWp1dWt2dnZ3YW10c2txIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE5MzYzNzEsImV4cCI6MjA1NzUxMjM3MX0.kU0DwkSTjj3Sj62OFbv4YWqWM170HDAbPYJtDFfRD3M"
-  },
   "cleanUrls": true,
   "trailingSlash": false,
   "github": {
@@ -33,6 +29,36 @@
         {
           "key": "X-XSS-Protection",
           "value": "1; mode=block"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains; preload"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
+    },
+    {
+      "source": "/_next/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
         }
       ]
     }

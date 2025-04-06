@@ -1,5 +1,5 @@
 import Image from "next/image"
-import { Lock, Users, MessageSquare, ThumbsUp, ThumbsDown, Star } from "lucide-react"
+import { Lock, Users, MessageSquare, ThumbsUp, ThumbsDown, Star, CheckCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
@@ -26,6 +26,19 @@ export default function GroupCard({ group }: GroupCardProps) {
   
   // Set default value for average_rating if undefined
   const averageRating = group.average_rating || 0;
+  
+  // Status badge color mapping
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      pending: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100',
+      verified: 'bg-green-100 text-green-800 hover:bg-green-100',
+      rejected: 'bg-red-100 text-red-800 hover:bg-red-100',
+      needs_review: 'bg-blue-100 text-blue-800 hover:bg-blue-100',
+      flagged: 'bg-purple-100 text-purple-800 hover:bg-purple-100'
+    };
+    
+    return colors[status] || '';
+  };
   
   return (
     <Card className="overflow-hidden transition-all hover:shadow-md">
@@ -54,7 +67,15 @@ export default function GroupCard({ group }: GroupCardProps) {
         </div>
       </div>
       <CardContent className="p-4">
-        <h3 className="font-bold text-lg mb-2 line-clamp-1">{group.name}</h3>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-bold text-lg line-clamp-1">{group.name}</h3>
+          {group.verification_status === 'verified' && (
+            <Badge variant="outline" className="ml-2 bg-green-100 text-green-800 hover:bg-green-100">
+              <CheckCircle className="mr-1 h-3 w-3" />
+              Verified
+            </Badge>
+          )}
+        </div>
         <p className="text-muted-foreground text-sm line-clamp-2 mb-3">{group.description}</p>
         <div className="flex items-center text-xs text-muted-foreground space-x-4">
           <div className="flex items-center">
@@ -72,6 +93,17 @@ export default function GroupCard({ group }: GroupCardProps) {
             <span>{averageRating.toFixed(1)}</span>
           </div>
         </div>
+        
+        {group.verification_status && group.verification_status !== 'verified' && (
+          <div className="mt-2">
+            <Badge variant="outline" className={getStatusColor(group.verification_status)}>
+              {group.verification_status === 'pending' && 'Pending Verification'}
+              {group.verification_status === 'rejected' && 'Rejected'}
+              {group.verification_status === 'needs_review' && 'Under Review'}
+              {group.verification_status === 'flagged' && 'Flagged'}
+            </Badge>
+          </div>
+        )}
       </CardContent>
       <CardFooter className="p-4 pt-0 flex justify-between">
         <Link href={`/group/${group.id}`}>

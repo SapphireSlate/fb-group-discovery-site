@@ -2,11 +2,15 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Star } from 'lucide-react';
+import { Star, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { getSupabaseBrowser } from '@/lib/supabase';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { Recaptcha } from '@/components/ui/recaptcha';
+import { sanitizeInput } from '@/lib/utils';
 
 interface ReviewFormProps {
   groupId: string;
@@ -15,137 +19,179 @@ interface ReviewFormProps {
 
 export default function ReviewForm({ groupId, userId }: ReviewFormProps) {
   const router = useRouter();
-  const [rating, setRating] = useState(0);
-  const [hoveredRating, setHoveredRating] = useState(0);
+  const [rating, setRating] = useState<number>(0);
   const [comment, setComment] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setIsSubmitting(true);
+    setError(null);
+    setSuccess(false);
+    setCaptchaError(null);
+
+    // Validation
     if (rating === 0) {
       setError('Please select a rating');
+      setIsSubmitting(false);
       return;
     }
-    
-    setIsLoading(true);
-    setError(null);
-    
+
+    // Validate CAPTCHA
+    if (!captchaToken) {
+      setCaptchaError('Please complete the CAPTCHA verification');
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
-      const supabase = getSupabaseBrowser();
+      // Sanitize the input
+      const sanitizedComment = sanitizeInput(comment);
+
+      const supabase = createClientComponentClient();
       
-      // Insert the review
-      const { error: reviewError } = await supabase
+      // Check if user already reviewed this group
+      const { data: existingReview } = await supabase
+        .from('reviews')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('group_id', groupId)
+        .maybeSingle();
+      
+      if (existingReview) {
+        setError('You have already reviewed this group. You can edit your review from your profile.');
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Submit review with CAPTCHA token for verification
+      const { error: submitError } = await supabase
         .from('reviews')
         .insert({
           group_id: groupId,
           user_id: userId,
           rating,
-          comment: comment.trim() || null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          helpful_votes: 0
+          comment: sanitizedComment,
+          recaptcha_token: captchaToken,
         });
       
-      if (reviewError) {
-        throw reviewError;
-      }
+      if (submitError) throw submitError;
       
-      // Calculate the new average rating
+      // Update group's average rating
+      await updateGroupRating(supabase, groupId);
+      
+      setSuccess(true);
+      setRating(0);
+      setComment('');
+      setCaptchaToken(null);
+      
+      // Refresh the page to show the new review
+      router.refresh();
+      
+    } catch (err: any) {
+      console.error('Error submitting review:', err);
+      setError(err.message || 'Failed to submit review. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  // Helper function to update the group's avg_rating
+  const updateGroupRating = async (supabase: any, groupId: string) => {
+    try {
+      // Get all reviews for this group
       const { data: reviews } = await supabase
         .from('reviews')
         .select('rating')
         .eq('group_id', groupId);
       
-      if (reviews) {
-        const totalRating = reviews.reduce((acc, review) => acc + review.rating, 0);
-        const averageRating = totalRating / reviews.length;
+      if (!reviews || reviews.length === 0) return;
+      
+      // Calculate the average
+      const total = reviews.reduce((sum: number, review: any) => sum + review.rating, 0);
+      const average = total / reviews.length;
+      
+      // Update the group
+      await supabase
+        .from('groups')
+        .update({ 
+          avg_rating: average,
+          review_count: reviews.length
+        })
+        .eq('id', groupId);
         
-        // Update the group's average rating
-        await supabase
-          .from('groups')
-          .update({
-            average_rating: averageRating
-          })
-          .eq('id', groupId);
-      }
-      
-      setSuccess(true);
-      
-      // Refresh the page after a short delay to show the new review
-      setTimeout(() => {
-        router.refresh();
-      }, 2000);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred while submitting your review');
-    } finally {
-      setIsLoading(false);
+    } catch (err) {
+      console.error('Error updating group rating:', err);
     }
   };
-  
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {success ? (
-        <Alert className="bg-green-50 border-green-200 text-green-800">
-          <AlertDescription>
-            Your review has been submitted successfully! The page will refresh shortly.
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
+      {success && (
+        <Alert className="bg-green-50 border-green-200">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <AlertTitle className="text-green-800">Thanks for your review!</AlertTitle>
+          <AlertDescription className="text-green-700">
+            Your review has been submitted successfully.
           </AlertDescription>
         </Alert>
-      ) : (
-        <>
-          <div className="space-y-2">
-            <div className="text-sm font-medium">Rating</div>
-            <div className="flex">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  className="p-1 focus:outline-none"
-                  onMouseEnter={() => setHoveredRating(star)}
-                  onMouseLeave={() => setHoveredRating(0)}
-                  onClick={() => setRating(star)}
-                >
-                  <Star
-                    className={`h-6 w-6 ${
-                      star <= (hoveredRating || rating)
-                        ? 'text-yellow-400 fill-yellow-400'
-                        : 'text-gray-300'
-                    }`}
-                  />
-                </button>
-              ))}
-              <div className="ml-2 text-sm text-muted-foreground self-center">
-                {rating > 0 ? `${rating} star${rating > 1 ? 's' : ''}` : 'Select a rating'}
-              </div>
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <label htmlFor="comment" className="text-sm font-medium">
-              Review (Optional)
-            </label>
-            <Textarea
-              id="comment"
-              placeholder="Share your thoughts about this group..."
-              rows={4}
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-            />
-          </div>
-          
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Submitting...' : 'Submit Review'}
-          </Button>
-        </>
       )}
+
+      <div className="space-y-3">
+        <Label>Rating</Label>
+        <RadioGroup
+          value={rating.toString()}
+          onValueChange={(value) => setRating(parseInt(value))}
+          className="flex space-x-1"
+        >
+          {[1, 2, 3, 4, 5].map((star) => (
+            <div key={star} className="flex items-center space-x-1">
+              <RadioGroupItem value={star.toString()} id={`star-${star}`} className="sr-only" />
+              <Label
+                htmlFor={`star-${star}`}
+                className={`cursor-pointer p-1 rounded-md hover:bg-accent ${
+                  rating >= star ? "text-yellow-500" : "text-gray-300"
+                }`}
+              >
+                <Star className="h-6 w-6 fill-current" />
+              </Label>
+            </div>
+          ))}
+        </RadioGroup>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="comment">Your Review (Optional)</Label>
+        <Textarea
+          id="comment"
+          placeholder="Share your experience with this group..."
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          rows={4}
+        />
+      </div>
+
+      <Recaptcha 
+        onChange={setCaptchaToken}
+        errorMessage={captchaError}
+        resetOnError={true}
+      />
+
+      <Button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? "Submitting..." : "Submit Review"}
+      </Button>
     </form>
   );
 } 

@@ -73,4 +73,53 @@ export interface MockData {
   reviews: Review[];
   categories: Category[];
   tags: Tag[];
+}
+
+// Add verification status type
+export type VerificationStatus = 'pending' | 'verified' | 'rejected' | 'needs_review' | 'flagged';
+
+export interface VerificationLog {
+  id: string;
+  group_id: string;
+  user_id: string;
+  status: VerificationStatus;
+  notes: string | null;
+  created_at: string;
+  user?: UserProfile; // Optional join with user profile
+}
+
+export interface VerificationStats {
+  verification_status: VerificationStatus;
+  count: number;
+  last_verification_date: string | null;
+}
+
+export interface GroupWithVerification extends Group {
+  verification_date: string | null;
+  verified_by: string | null;
+  verification_notes: string | null;
+  verification_status: VerificationStatus;
+  verification_logs?: VerificationLog[];
+  category?: { id: string; name: string };
+  submitted_by_user?: { id: string; display_name: string; avatar_url?: string | null };
+  verified_by_user?: { id: string; display_name: string; avatar_url?: string | null };
+  submitted_at: string;
+}
+
+// Add to existing interfaces
+export interface GroupsApiResponse {
+  // ... existing code ...
+  verification_stats?: VerificationStats[];
+}
+
+// Find the existing UserProfile interface or add it if it doesn't exist
+export interface UserProfile {
+  id: string;
+  email?: string;
+  display_name: string;
+  avatar_url?: string | null;
+  role?: string;
+  reputation?: number;
+  created_at?: string;
+  last_login?: string;
 } 

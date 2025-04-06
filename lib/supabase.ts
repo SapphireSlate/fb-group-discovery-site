@@ -15,7 +15,23 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-  }
+    detectSessionInUrl: true,
+    flowType: 'pkce',  // Use PKCE flow for better security
+  },
+  global: {
+    headers: {
+      'x-application-name': 'fb-group-discovery',
+    },
+  },
+  db: {
+    schema: 'public',
+  },
+  realtime: {
+    // Disable realtime subscriptions if not needed
+    params: {
+      eventsPerSecond: 10,
+    },
+  },
 });
 
 // Client-side instantiation
@@ -23,7 +39,24 @@ export function getSupabaseBrowser() {
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error('Supabase URL and Anon Key must be defined in environment variables');
   }
-  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
+  
+  return createBrowserClient<Database>(
+    supabaseUrl, 
+    supabaseAnonKey, 
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce',  // Use PKCE flow for better security
+      },
+      global: {
+        headers: {
+          'x-application-name': 'fb-group-discovery',
+        },
+      },
+    }
+  );
 }
 
 // For server components - must be used with cookies
@@ -43,11 +76,19 @@ export async function createServerClient(cookieStore: ReturnType<typeof cookies>
     {
       cookies: {
         get(name: string) {
-          return cookieStore.get(name)?.value ?? '';
+          const cookie = cookieStore.get(name);
+          return cookie?.value ?? '';
         },
         set(name: string, value: string, options: CookieOptions) {
           try {
-            cookieStore.set({ name, value, ...options });
+            // Enhanced security for cookies
+            const secureOptions: CookieOptions = {
+              ...options,
+              secure: process.env.NODE_ENV === 'production', // Secure in production
+              httpOnly: true, // Not accessible via JavaScript
+              sameSite: 'strict', // Restrict to same site
+            };
+            cookieStore.set({ name, value, ...secureOptions });
           } catch (error) {
             console.error('Error setting cookie:', error);
           }
@@ -64,7 +105,14 @@ export async function createServerClient(cookieStore: ReturnType<typeof cookies>
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-      }
+        detectSessionInUrl: false, // Disable for server components
+        flowType: 'pkce',  // Use PKCE flow for better security
+      },
+      global: {
+        headers: {
+          'x-application-name': 'fb-group-discovery',
+        },
+      },
     }
   );
 }

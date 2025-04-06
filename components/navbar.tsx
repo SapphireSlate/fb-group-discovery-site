@@ -37,6 +37,12 @@ export function Navbar() {
           >
             About
           </Link>
+          <Link 
+            href="/api/docs" 
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+          >
+            API Docs
+          </Link>
         </div>
         
         <div className="ml-auto flex items-center space-x-4">

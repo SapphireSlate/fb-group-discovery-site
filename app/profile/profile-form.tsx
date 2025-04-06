@@ -10,14 +10,33 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Database } from '@/lib/database.types';
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useToast } from "@/components/ui/use-toast";
+import { Recaptcha } from "@/components/ui/recaptcha";
+import { sanitizeInput } from "@/lib/utils";
 
-type UserProfile = Database['public']['Tables']['users']['Row'];
+type UserProfile = Database['public']['Tables']['users']['Row'] & {
+  bio?: string | null;
+  website?: string | null;
+};
 
 interface ProfileFormProps {
   profile: UserProfile;
 }
 
+const profileFormSchema = z.object({
+  display_name: z.string().min(2).max(50),
+  bio: z.string().max(500).optional(),
+  website: z.string().url().or(z.literal('')).optional(),
+});
+
+type ProfileFormValues = z.infer<typeof profileFormSchema>;
+
 export default function ProfileForm({ profile }: ProfileFormProps) {
+  const { toast } = useToast();
   const [displayName, setDisplayName] = useState(profile.display_name);
   const [bio, setBio] = useState('');
   const [avatar, setAvatar] = useState<File | null>(null);
@@ -25,8 +44,19 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
   const router = useRouter();
   
+  const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileFormSchema),
+    defaultValues: {
+      display_name: profile.display_name || "",
+      bio: profile.bio || "",
+      website: profile.website || "",
+    },
+  });
+
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -44,7 +74,15 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
     setLoading(true);
     setSuccess(false);
     setError(null);
+    setCaptchaError(null);
     
+    // Validate CAPTCHA
+    if (!captchaToken) {
+      setCaptchaError("Please complete the CAPTCHA verification");
+      setLoading(false);
+      return;
+    }
+
     try {
       const supabase = getSupabaseBrowser();
       
@@ -84,6 +122,27 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
       await supabase.auth.updateUser({
         data: { display_name: displayName }
       });
+      
+      // Sanitize inputs
+      const sanitizedData = {
+        display_name: sanitizeInput(displayName),
+        bio: bio ? sanitizeInput(bio) : null,
+        website: bio ? sanitizeInput(bio) : null,
+      };
+      
+      // Update profile with CAPTCHA token
+      const { error: captchaError } = await supabase
+        .from("profiles")
+        .update({ 
+          ...sanitizedData,
+          updated_at: new Date().toISOString(),
+          recaptcha_token: captchaToken,
+        })
+        .eq("id", profile.id);
+
+      if (captchaError) {
+        throw new Error(captchaError.message);
+      }
       
       setSuccess(true);
       router.refresh();
@@ -146,6 +205,12 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
           rows={4}
         />
       </div>
+      
+      <Recaptcha
+        onChange={setCaptchaToken}
+        errorMessage={captchaError}
+        resetOnError={true}
+      />
       
       {success && (
         <Alert className="bg-green-50 border-green-200">

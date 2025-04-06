@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input"
 import Image from "next/image"
 import Link from "next/link"
-import { ChevronLeft, Users, Calendar, Lock, MessageSquare, Share2, Bell, Flag, Star, ThumbsUp, ThumbsDown } from "lucide-react"
+import { ChevronLeft, Users, Calendar, Lock, MessageSquare, Share2, Bell, Flag, Star, ThumbsUp, ThumbsDown, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
@@ -13,8 +13,15 @@ import { notFound } from 'next/navigation'
 import { Database } from '@/lib/database.types'
 import GroupVoteButtons from './vote-buttons'
 import ReviewForm from './review-form'
+import RelatedGroups from './related-groups'
+import ReportButtonClient from './report-button-client'
 
-type Group = Database['public']['Tables']['groups']['Row']
+type Group = Database['public']['Tables']['groups']['Row'] & {
+  categories?: Database['public']['Tables']['categories']['Row'];
+  users?: Database['public']['Tables']['users']['Row'];
+  verified_by_user?: Database['public']['Tables']['users']['Row'];
+}
+
 type Review = Database['public']['Tables']['reviews']['Row'] & {
   users: Database['public']['Tables']['users']['Row']
 }
@@ -29,7 +36,8 @@ export default async function GroupPage({ params }: { params: { id: string } }) 
     .select(`
       *,
       categories:category_id(*),
-      users!submitted_by(*)
+      users!submitted_by(*),
+      verified_by_user:verified_by(*)
     `)
     .eq('id', params.id)
     .single()
@@ -140,7 +148,15 @@ export default async function GroupPage({ params }: { params: { id: string } }) 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold">{group.name}</h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-3xl font-bold">{group.name}</h1>
+                  {group.verification_status === 'verified' && (
+                    <Badge variant="outline" className="ml-2 bg-green-100 text-green-800 hover:bg-green-100">
+                      <CheckCircle className="mr-1 h-3 w-3" />
+                      Verified
+                    </Badge>
+                  )}
+                </div>
                 <div className="flex items-center mt-2 space-x-4">
                   <div className="flex items-center">
                     {renderStars(group.average_rating)}
@@ -177,6 +193,22 @@ export default async function GroupPage({ params }: { params: { id: string } }) 
                 </a>
               </div>
             </div>
+            
+            {/* Add verification info if verified */}
+            {group.verification_status === 'verified' && group.verification_date && (
+              <div className="bg-green-50 border border-green-100 rounded-md p-3 mt-3">
+                <h3 className="text-sm font-medium text-green-800 flex items-center">
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Verified Group
+                </h3>
+                <div className="text-xs text-green-700 mt-1">
+                  <p>This group has been verified by our team on {new Date(group.verification_date).toLocaleDateString()}</p>
+                  {group.verified_by_user && (
+                    <p className="mt-1">Verified by: {group.verified_by_user.display_name}</p>
+                  )}
+                </div>
+              </div>
+            )}
             
             <div className="relative aspect-video w-full rounded-lg overflow-hidden bg-gray-100">
               {group.screenshot_url ? (
@@ -368,9 +400,7 @@ export default async function GroupPage({ params }: { params: { id: string } }) 
             </TabsContent>
             
             <TabsContent value="related" className="pt-4">
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Related groups feature coming soon</p>
-              </div>
+              <RelatedGroups groupId={group.id} />
             </TabsContent>
           </Tabs>
         </div>
@@ -446,10 +476,22 @@ export default async function GroupPage({ params }: { params: { id: string } }) 
               <p className="text-sm text-muted-foreground mb-4">
                 See something wrong with this group listing?
               </p>
-              <Button variant="outline" size="sm" className="w-full">
-                <Flag className="h-4 w-4 mr-2" />
-                Report Group
-              </Button>
+              {userProfile ? (
+                <ReportButtonClient 
+                  groupId={group.id} 
+                  groupName={group.name} 
+                  userId={userProfile.id} 
+                />
+              ) : (
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground mb-2">Sign in to report this group</p>
+                  <Link href="/auth/login">
+                    <Button variant="outline" size="sm" className="w-full">
+                      Sign In
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </CardContent>
           </Card>
           

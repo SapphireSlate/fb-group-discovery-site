@@ -23,6 +23,10 @@ import { X, ChevronLeft } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Database } from '@/lib/database.types';
 import { Card, CardContent } from '@/components/ui/card';
+import { Recaptcha } from '@/components/ui/recaptcha';
+import { AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { sanitizeInput } from '@/lib/utils';
 
 type Category = Database['public']['Tables']['categories']['Row'];
 type Tag = Database['public']['Tables']['tags']['Row'];
@@ -60,6 +64,16 @@ export default function SubmitGroupForm({ categories, tags, userId }: SubmitGrou
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    url: '',
+    description: '',
+    category: '',
+  });
   
   // Activity levels for dropdown
   const activityLevels = [
@@ -145,6 +159,13 @@ export default function SubmitGroupForm({ categories, tags, userId }: SubmitGrou
   const onSubmit = async (values: FormValues) => {
     setLoading(true);
     setError(null);
+    setSuccess(false);
+    setCaptchaError(null);
+    
+    if (!validateForm()) {
+      setLoading(false);
+      return;
+    }
     
     try {
       const supabase = getSupabaseBrowser();
@@ -558,9 +579,46 @@ export default function SubmitGroupForm({ categories, tags, userId }: SubmitGrou
         </Alert>
       )}
       
+      <Recaptcha 
+        onChange={setCaptchaToken}
+        errorMessage={captchaError}
+        resetOnError={true}
+      />
+      
       <Button type="submit" className="w-full" disabled={loading}>
         Preview Submission
       </Button>
     </form>
   );
+}
+
+function validateForm() {
+  const newErrors: Record<string, string> = {};
+  
+  if (!formData.name.trim()) {
+    newErrors.name = 'Group name is required';
+  }
+  
+  if (!formData.url.trim()) {
+    newErrors.url = 'URL is required';
+  } else if (!formData.url.includes('facebook.com/groups/')) {
+    newErrors.url = 'Must be a valid Facebook group URL';
+  }
+  
+  if (!formData.description.trim()) {
+    newErrors.description = 'Description is required';
+  } else if (formData.description.length < 50) {
+    newErrors.description = 'Description must be at least 50 characters';
+  }
+  
+  if (!formData.category.trim()) {
+    newErrors.category = 'Category is required';
+  }
+  
+  if (!captchaToken) {
+    setCaptchaError('Please complete the CAPTCHA verification');
+  }
+  
+  setErrors(newErrors);
+  return Object.keys(newErrors).length === 0 && captchaToken !== null;
 } 
