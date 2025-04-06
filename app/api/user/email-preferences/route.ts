@@ -1,16 +1,17 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { Database } from '@/lib/database.types';
 import { emailPreferencesSchema } from '@/lib/email';
 import { verifyRecaptcha } from '@/lib/security';
-import { sanitizeInput } from '@/lib/utils';
+import { sanitizeText } from '@/lib/utils';
+import { createServerClient } from '@/lib/supabase';
 
 // GET handler to retrieve user's email preferences
 export async function GET(req: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient<Database>({ cookies });
+    const cookieStore = cookies();
+    const supabase = await createServerClient(cookieStore);
     
     // Check if the user is authenticated
     const {
@@ -115,7 +116,8 @@ export async function GET(req: NextRequest) {
 // PUT handler to update email preferences
 export async function PUT(req: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient<Database>({ cookies });
+    const cookieStore = cookies();
+    const supabase = await createServerClient(cookieStore);
     
     // Check if the user is authenticated
     const {
