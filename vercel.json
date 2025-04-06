@@ -8,7 +8,6 @@
     "silent": true,
     "autoJobCancelation": true
   },
-  "ignoreCommand": "echo 'Skip linting and typescript errors during deployments'",
   "git": {
     "deploymentEnabled": {
       "main": true
