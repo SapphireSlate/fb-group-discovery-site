@@ -42,8 +42,7 @@ export default async function AdminDashboardPage() {
   // Check if user is authorized to access admin panel
   const user = await requireAuth();
   
-  const cookieStore = cookies();
-  const supabase = await createServerClient(cookieStore);
+  const supabase = await createServerClient();
   
   // Get the user's profile to check admin status
   const { data: profile } = await supabase
@@ -87,7 +86,7 @@ export default async function AdminDashboardPage() {
   // Fetch popular groups
   const { data: popularGroups } = await supabase
     .from('groups')
-    .select('id, name, description, member_count, view_count')
+    .select('id, name, description, size, view_count')
     .eq('status', 'active')
     .order('view_count', { ascending: false })
     .limit(5);

@@ -16,8 +16,7 @@ export async function getReports({
   limit = 10,
   offset = 0,
 }: ReportFilters = {}) {
-  const cookieStore = cookies();
-  const supabase = await createServerClient(cookieStore);
+  const supabase = await createServerClient();
 
   // Build the query
   let query = supabase
@@ -54,8 +53,7 @@ export async function getReports({
  * Get report counts by status
  */
 export async function getReportCounts() {
-  const cookieStore = cookies();
-  const supabase = await createServerClient(cookieStore);
+  const supabase = await createServerClient();
 
   const { data, error } = await supabase
     .from('report_counts')
@@ -90,8 +88,7 @@ export async function getReportCounts() {
  * Check if user is an admin
  */
 export async function isAdmin() {
-  const cookieStore = cookies();
-  const supabase = await createServerClient(cookieStore);
+  const supabase = await createServerClient();
 
   // Get user session
   const { data: { session } } = await supabase.auth.getSession();

@@ -7,7 +7,6 @@ import { Navbar } from "@/components/navbar"
 import Footer from "@/components/footer"
 import Link from "next/link"
 import { createServerClient } from '@/lib/supabase'
-import { cookies } from 'next/headers'
 import { Database } from '@/lib/database.types'
 
 type GroupWithRelations = Database['public']['Tables']['groups']['Row'] & {
@@ -22,8 +21,7 @@ type GroupWithRelations = Database['public']['Tables']['groups']['Row'] & {
 };
 
 export default async function Home() {
-  const cookieStore = cookies();
-  const supabase = await createServerClient(cookieStore);
+  const supabase = await createServerClient();
   
   // Fetch featured groups (highest rated)
   const { data: featuredGroups, error: featuredError } = await supabase

@@ -54,8 +54,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Create Supabase client
-    const cookieStore = cookies();
-    const supabase = await createServerClient(cookieStore);
+    const supabase = await createServerClient();
     
     // Process different webhook events
     switch (event.type) {

@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { Database } from './database.types';
 import nodemailer from 'nodemailer';
 import { z } from 'zod';
@@ -495,7 +495,7 @@ export async function sendEmailWithPreferenceCheck(
 ): Promise<boolean> {
   try {
     // Check if the user has opted out of this type of email
-    const { data: preferences } = await supabaseAdmin
+    const { data: preferences } = await getSupabaseAdmin()
       .from('email_preferences')
       .select('*')
       .eq('user_id', userId)
@@ -515,18 +515,25 @@ export async function sendEmailWithPreferenceCheck(
   }
 }
 
-// Create an admin Supabase client for accessing email preferences
-const supabaseAdmin = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-);
+// Lazily create an admin Supabase client for accessing email preferences
+let supabaseAdminInstance: SupabaseClient<Database> | null = null;
+function getSupabaseAdmin(): SupabaseClient<Database> {
+  if (supabaseAdminInstance) return supabaseAdminInstance;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    throw new Error('Supabase admin credentials are not configured');
+  }
+  supabaseAdminInstance = createClient<Database>(url, key);
+  return supabaseAdminInstance;
+}
 
 /**
  * Create default email preferences for a user
  */
 export async function createDefaultEmailPreferences(userId: string): Promise<void> {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdmin()
       .from('email_preferences')
       .select('*')
       .eq('user_id', userId)
@@ -539,7 +546,7 @@ export async function createDefaultEmailPreferences(userId: string): Promise<voi
     
     // Only create if no preferences exist
     if (!data) {
-      const { error: insertError } = await supabaseAdmin
+      const { error: insertError } = await getSupabaseAdmin()
         .from('email_preferences')
         .insert({
           user_id: userId,
@@ -565,7 +572,7 @@ export async function createDefaultEmailPreferences(userId: string): Promise<voi
  */
 export async function getUserEmailPreferences(userId: string): Promise<EmailPreferences> {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdmin()
       .from('email_preferences')
       .select('*')
       .eq('user_id', userId)
@@ -588,7 +595,7 @@ export async function getUserEmailPreferences(userId: string): Promise<EmailPref
  */
 async function getUserProfile(userId: string) {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdmin()
       .from('users')
       .select('*')
       .eq('id', userId)
@@ -737,7 +744,7 @@ export async function sendNewBadgeEmail(userId: string, badgeName: string, badge
 export async function sendNewReportEmailToAdmins(groupName: string, reason: string) {
   try {
     // Get all admin users
-    const { data: admins, error } = await supabaseAdmin
+    const { data: admins, error } = await getSupabaseAdmin()
       .from('users')
       .select('*')
       .eq('role', 'admin');

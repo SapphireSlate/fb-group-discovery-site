@@ -26,8 +26,7 @@ export async function GET(request: NextRequest) {
     const groupId = searchParams.get('groupId');
     const categoryId = searchParams.get('categoryId');
     
-    const cookieStore = cookies();
-    const supabase = await createServerClient(cookieStore);
+    const supabase = await createServerClient();
     
     let query = supabase
       .from('featured_listings')
@@ -99,8 +98,7 @@ export async function POST(request: NextRequest) {
     
     if (securityResponse) return securityResponse;
 
-    const cookieStore = cookies();
-    const supabase = await createServerClient(cookieStore);
+    const supabase = await createServerClient();
     
     // Get user from session
     const { data: { session } } = await supabase.auth.getSession();

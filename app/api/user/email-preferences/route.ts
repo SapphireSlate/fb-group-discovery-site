@@ -7,6 +7,9 @@ import { emailPreferencesSchema } from '@/lib/email';
 import { verifyRecaptcha } from '@/lib/security';
 import { sanitizeText } from '@/lib/utils';
 
+// Force dynamic rendering to potentially avoid build-time env var issues
+export const dynamic = 'force-dynamic';
+
 // GET handler to retrieve user's email preferences
 export async function GET(req: NextRequest) {
   try {
@@ -24,11 +27,11 @@ export async function GET(req: NextRequest) {
       );
     }
     
-    // Get the user's profile
+    // Get the user's record
     const { data: profile, error: profileError } = await supabase
-      .from('profiles')
+      .from('users')
       .select('*')
-      .eq('id', session.user.id)
+      .eq('auth_id', session.user.id)
       .single();
       
     if (profileError) {
@@ -129,11 +132,11 @@ export async function PUT(req: NextRequest) {
       );
     }
     
-    // Get the user's profile to check if they're an admin
+    // Get the user's record to check if they're an admin
     const { data: profile, error: profileError } = await supabase
-      .from('profiles')
+      .from('users')
       .select('*')
-      .eq('id', session.user.id)
+      .eq('auth_id', session.user.id)
       .single();
       
     if (profileError) {

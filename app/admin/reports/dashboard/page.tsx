@@ -25,8 +25,7 @@ export default async function ReportsDashboardPage() {
   // Check if user is authorized to access admin panel
   const user = await requireAuth();
   
-  const cookieStore = cookies();
-  const supabase = await createServerClient(cookieStore);
+  const supabase = await createServerClient();
   
   // Get the user's profile to check admin status
   const { data: profile } = await supabase
@@ -142,22 +141,22 @@ export default async function ReportsDashboardPage() {
   // Fetch top reporters
   const { data: topReporters, error: reportersError } = await supabase
     .from('reports')
-    .select('reported_by, users:reported_by(display_name, avatar_url)')
+    .select('user_id, users:user_id(display_name, avatar_url)')
     .then(({ data, error }) => {
       if (error) throw error;
       
       // Count reports by user
       const userCounts = {};
       data.forEach(report => {
-        if (report.reported_by) {
-          userCounts[report.reported_by] = (userCounts[report.reported_by] || 0) + 1;
+         if (report.user_id) {
+           userCounts[report.user_id] = (userCounts[report.user_id] || 0) + 1;
         }
       });
       
       // Convert to array and sort
       const topUsers = Object.entries(userCounts)
-        .map(([userId, count]) => {
-          const userInfo = data.find(r => r.reported_by === userId)?.users;
+         .map(([userId, count]) => {
+          const userInfo = data.find(r => r.user_id === userId)?.users;
           return {
             id: userId,
             count,

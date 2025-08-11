@@ -39,8 +39,7 @@ export async function awardReputationPoints({
   sourceType: ReputationSource;
   sourceId?: string;
 }) {
-  const cookieStore = cookies();
-  const supabase = await createServerClient(cookieStore);
+  const supabase = await createServerClient();
 
   // Insert the reputation history entry
   const { data, error } = await supabase
@@ -68,8 +67,7 @@ export async function awardReputationPoints({
  * Check if a user qualifies for reputation-based badges
  */
 async function checkReputationBadges(userId: string) {
-  const cookieStore = cookies();
-  const supabase = await createServerClient(cookieStore);
+  const supabase = await createServerClient();
 
   // Get user's current reputation
   const { data: userData, error: userError } = await supabase
@@ -129,8 +127,7 @@ export async function awardBadge(
   badgeName: string,
   points: number
 ) {
-  const cookieStore = cookies();
-  const supabase = await createServerClient(cookieStore);
+  const supabase = await createServerClient();
 
   // Check if the user already has this badge
   const { data: existingBadge, error: checkError } = await supabase
@@ -196,8 +193,7 @@ export async function checkContributionBadges(
   userId: string,
   action: 'submit_group' | 'write_review' | 'vote' | 'report_group'
 ) {
-  const cookieStore = cookies();
-  const supabase = await createServerClient(cookieStore);
+  const supabase = await createServerClient();
 
   // Count the user's contributions of this type
   let contributionCount = 0;
@@ -299,8 +295,7 @@ export async function checkContributionBadges(
  * Get user badges with details
  */
 export async function getUserBadges(userId: string) {
-  const cookieStore = cookies();
-  const supabase = await createServerClient(cookieStore);
+  const supabase = await createServerClient();
 
   const { data, error } = await supabase
     .from('user_badges')
@@ -330,8 +325,7 @@ export async function getUserBadges(userId: string) {
  * Get user reputation history
  */
 export async function getUserReputationHistory(userId: string, limit = 10) {
-  const cookieStore = cookies();
-  const supabase = await createServerClient(cookieStore);
+  const supabase = await createServerClient();
 
   const { data, error } = await supabase
     .from('reputation_history')

@@ -1,4 +1,4 @@
-import { createBrowserClient } from '@supabase/ssr';
+import { createBrowserClient, createServerClient as createSupabaseServerClient, type CookieOptions } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './database.types';
 
@@ -59,17 +59,16 @@ export function getSupabaseBrowser() {
   );
 }
 
-// For server components - must be used with cookies
-import { createServerClient as createSupabaseServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-
-export async function createServerClient(cookieStore: ReturnType<typeof cookies>) {
+// Server-side client helper
+export async function createServerClient(_cookieStore?: unknown) {
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Supabase URL and Anon Key must be defined in environment variables');
+    throw new Error('Supabase URL and Anon Key must be provided');
   }
-  
-  // Create a new instance of the supabase client each time
-  // Cookies need to be passed explicitly for authentication to work
+
+  // Always read cookies fresh to avoid type differences between environments
+  const { cookies } = await import('next/headers');
+  const cookieStore = await cookies();
+
   return createSupabaseServerClient<Database>(
     supabaseUrl,
     supabaseAnonKey,
@@ -81,32 +80,33 @@ export async function createServerClient(cookieStore: ReturnType<typeof cookies>
         },
         set(name: string, value: string, options: CookieOptions) {
           try {
-            // Enhanced security for cookies
             const secureOptions: CookieOptions = {
               ...options,
-              secure: process.env.NODE_ENV === 'production', // Secure in production
-              httpOnly: true, // Not accessible via JavaScript
-              sameSite: 'strict', // Restrict to same site
+              secure: process.env.NODE_ENV === 'production',
+              httpOnly: true,
+              sameSite: 'lax',
             };
-            cookieStore.set({ name, value, ...secureOptions });
+            // In Server Components, setting cookies may be restricted; ignore if not permitted
+            // For Route Handlers/middleware, Next.js provides mutable cookies
+            // Use optional chaining to avoid type issues when not supported
+            (cookieStore as any)?.set?.({ name, value, ...secureOptions });
           } catch (error) {
-            console.error('Error setting cookie:', error);
+            // Ignore in server components where set is not allowed
           }
         },
         remove(name: string, options: CookieOptions) {
           try {
-            cookieStore.set({ name, value: '', ...options });
+            (cookieStore as any)?.set?.({ name, value: '', ...options });
           } catch (error) {
-            console.error('Error removing cookie:', error);
+            // Ignore in server components where set is not allowed
           }
         },
       },
-      // Add security options
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: false, // Disable for server components
-        flowType: 'pkce',  // Use PKCE flow for better security
+        detectSessionInUrl: false,
+        flowType: 'pkce',
       },
       global: {
         headers: {

@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { createServerClient } from '@/lib/supabase'
-import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { Database } from '@/lib/database.types'
 import GroupVoteButtons from './vote-buttons'
@@ -27,8 +26,7 @@ type Review = Database['public']['Tables']['reviews']['Row'] & {
 }
 
 export default async function GroupPage({ params }: { params: { id: string } }) {
-  const cookieStore = cookies()
-  const supabase = await createServerClient(cookieStore)
+  const supabase = await createServerClient()
   
   // Fetch group data
   const { data: group, error } = await supabase

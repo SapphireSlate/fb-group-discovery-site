@@ -36,8 +36,7 @@ export default async function AdminCategoriesPage() {
   // Check if user is authorized
   const user = await requireAuth();
   
-  const cookieStore = cookies();
-  const supabase = await createServerClient(cookieStore);
+  const supabase = await createServerClient();
   
   // Get the user's profile to check admin status
   const { data: profile } = await supabase

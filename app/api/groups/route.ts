@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
         categories:category_id (id, name),
         groups_tags (tag_id)
       `)
-      .eq('status', 'approved')
+      .eq('status', 'active')
       .order('average_rating', { ascending: false });
     
     // Apply filters
@@ -137,8 +137,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create Supabase client
-    const cookieStore = cookies();
-    const supabase = await createServerClient(cookieStore);
+    const supabase = await createServerClient();
 
     // Get user info from session
     const { data: { session } } = await supabase.auth.getSession();

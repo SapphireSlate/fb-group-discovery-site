@@ -15,12 +15,12 @@ export default async function SettingsPage() {
     redirect('/login?callbackUrl=/settings');
   }
   
-  // Get user profile to check if admin
-  const supabase = await createServerClient(cookies());
+  // Get user record to check if admin
+  const supabase = await createServerClient();
   const { data: profile } = await supabase
-    .from('profiles')
+    .from('users')
     .select('*')
-    .eq('id', user.id)
+    .eq('auth_id', user.id)
     .single();
     
   const isAdmin = profile?.is_admin || false;

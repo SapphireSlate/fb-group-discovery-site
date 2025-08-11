@@ -15,12 +15,12 @@ export default async function EmailPreferencesPage() {
     redirect('/login?callbackUrl=/settings/email-preferences');
   }
   
-  // Get user profile
-  const supabase = await createServerClient(cookies());
+  // Get user record (if needed)
+  const supabase = await createServerClient();
   const { data: profile } = await supabase
-    .from('profiles')
+    .from('users')
     .select('*')
-    .eq('id', user.id)
+    .eq('auth_id', user.id)
     .single();
   
   return (

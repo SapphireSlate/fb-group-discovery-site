@@ -38,8 +38,7 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
   // Check if user is authorized to access admin panel
   const adminUser = await requireAuth();
   
-  const cookieStore = cookies();
-  const supabase = await createServerClient(cookieStore);
+  const supabase = await createServerClient();
   
   // Get the admin user's profile to check admin status
   const { data: adminProfile } = await supabase
@@ -85,7 +84,7 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
   const { data: userReports } = await supabase
     .from('reports')
     .select('*')
-    .eq('reported_by', id)
+    .eq('user_id', id)
     .order('created_at', { ascending: false });
   
   // Format date helper
@@ -153,12 +152,12 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
                   
                   <div className="flex items-center text-sm">
                     <Mail className="mr-2 h-4 w-4 text-muted-foreground" />
-                    Email: {user.is_verified ? 'Verified' : 'Unverified'}
+                    Email: {user.email || 'No email'}
                   </div>
                 </div>
                 
                 <div className="flex flex-col gap-2 w-full">
-                  <UserActions userId={user.id} userEmail={user.email || ''} isLocked={user.is_locked || false} />
+                  <UserActions userId={user.id} userEmail={user.email || ''} isLocked={false} />
                 </div>
               </div>
             </CardContent>
@@ -281,15 +280,14 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
                           <div className="flex justify-between items-start">
                             <div>
                               <h3 className="font-medium">
-                                <Badge variant="outline" className="mr-2">
-                                  {report.type}
-                                </Badge>
-                                {report.title || 'Untitled Report'}
+                                 <Badge variant="outline" className="mr-2">
+                                   {report.reason}
+                                 </Badge>
                               </h3>
                               <p className="text-sm text-muted-foreground">
                                 Submitted: {formatDate(report.created_at)}
                               </p>
-                              <p className="text-sm mt-2">{report.description}</p>
+                               <p className="text-sm mt-2">{report.comment}</p>
                               <div className="mt-2">
                                 <Badge variant={report.status === 'pending' ? 'outline' : 
                                               (report.status === 'resolved' ? 'default' : 'secondary')}>

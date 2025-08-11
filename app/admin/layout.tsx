@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { requireAuth } from '@/lib/auth';
-import { createServerClient } from '@/lib/supabase';
+import { createServerClient as createSupabaseServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -26,40 +26,76 @@ import {
   BarChart3,
   DollarSign
 } from 'lucide-react';
+import { Database } from '@/lib/database.types';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
 export default async function AdminLayout({ children }: AdminLayoutProps) {
+  // Use cookies() directly inside methods to avoid type issues
+
+  // Define Supabase URL and Key from env vars
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+  // Define cookie methods inline
+  const serverCookieMethods = {
+    get(name: string) {
+      return cookies().get(name)?.value;
+    },
+    set(name: string, value: string, options: CookieOptions) {
+      try {
+        // @ts-expect-error set may not exist depending on runtime context
+        cookies().set({ name, value, ...options });
+      } catch (error) {
+        // The `set` method was called from a Server Component.
+        // This can be ignored if you have middleware refreshing
+        // user sessions.
+      }
+    },
+    remove(name: string, options: CookieOptions) {
+      try {
+        // @ts-expect-error set may not exist depending on runtime context
+        cookies().set({ name, value: '', ...options });
+      } catch (error) {
+        // The `delete` method was called from a Server Component.
+      }
+    },
+  };
+
+  // Create Supabase client using the direct pattern with inline methods
+  const supabase = createSupabaseServerClient<Database>(
+    supabaseUrl,
+    supabaseAnonKey,
+    { cookies: serverCookieMethods } // Pass the methods object
+  );
+
   // Check if user is authorized to access admin panel
   try {
-    const user = await requireAuth();
+    const { data: { user } } = await supabase.auth.getUser();
     
-    const cookieStore = cookies();
-    const supabase = await createServerClient(cookieStore);
+    if (!user) {
+      redirect('/auth/login');
+    }
     
-    // Get the user's profile to check admin status
+    // Get the user's record to check admin status
     const { data: profile } = await supabase
       .from('users')
-      .select('*')
+      .select('is_admin, auth_id')
       .eq('auth_id', user.id)
       .single();
     
-    // Check admin status (simple role check - in production you'd have a proper roles table)
-    const isAdmin = profile?.email?.endsWith('@example.com'); // Replace with your actual admin check
-    
-    if (!isAdmin) {
+    if (!profile?.is_admin) {
       redirect('/'); // Redirect non-admins
     }
   } catch (error) {
-    redirect('/auth/login'); // Redirect to login if not authenticated
+    console.error("Auth check failed:", error);
+    redirect('/auth/login'); // Redirect to login if error during check
   }
   
-  // Fetch pending reports count
-  const cookieStore = cookies();
-  const supabase = await createServerClient(cookieStore);
-  const { count: pendingReportsCount } = await supabase
+  // Fetch pending reports count (Can reuse the same client)
+  const { count: pendingReportsCount } = await supabase // Reuse client
     .from('reports')
     .select('*', { count: 'exact', head: true })
     .eq('status', 'pending');
