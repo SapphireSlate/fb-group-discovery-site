@@ -111,6 +111,47 @@ export async function middleware(request: NextRequest) {
   // Refresh session if expired - required for Server Components
   await supabase.auth.getSession();
 
+  // Require authentication for protected application routes
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    const pathname = request.nextUrl.pathname;
+
+    const isAuthRoute = pathname.startsWith('/auth');
+    const isPublicExact = ['/', '/about', '/pricing', '/contact', '/faq', '/help', '/guidelines', '/terms', '/privacy'].includes(pathname);
+    const isPublicPrefix = ['/api', '/docs'].some((p) => pathname.startsWith(p));
+
+    const isPublic = isAuthRoute || isPublicExact || isPublicPrefix;
+
+    if (!isPublic) {
+      const requiresAuthPrefixes = [
+        '/discover',
+        '/groups',
+        '/categories',
+        '/leaderboard',
+        '/trending',
+        '/profile',
+        '/submit',
+        '/new',
+        '/review',
+        '/settings',
+        '/promote',
+        '/checkout',
+        '/admin',
+      ];
+
+      const requiresAuth = requiresAuthPrefixes.some((p) => pathname.startsWith(p));
+
+      if (requiresAuth && !session) {
+        const loginUrl = new URL('/auth/login', request.url);
+        loginUrl.searchParams.set('callbackUrl', request.nextUrl.href);
+        return NextResponse.redirect(loginUrl, { headers: response.headers });
+      }
+    }
+  } catch {
+    // On error, fall through without redirect; route-level checks still enforce auth
+  }
+
   return response;
 }
 

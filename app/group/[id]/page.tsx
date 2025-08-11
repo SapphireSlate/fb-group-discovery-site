@@ -11,6 +11,8 @@ import { createServerClient } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import { Database } from '@/lib/database.types'
 import GroupVoteButtons from './vote-buttons'
+import SponsoredGroup from './sponsored'
+import AdSlot from '@/components/ads/AdSlot'
 import ReviewForm from './review-form'
 import RelatedGroups from './related-groups'
 import ReportButtonClient from './report-button-client'
@@ -405,6 +407,11 @@ export default async function GroupPage({ params }: { params: { id: string } }) 
         
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Top Sidebar Ad */}
+          <AdSlot slot="sidebar" />
+
+          {/* Sponsored group placement */}
+          <SponsoredGroup groupId={group.id} />
           {/* Voting card */}
           <Card>
             <CardHeader>
@@ -525,6 +532,9 @@ export default async function GroupPage({ params }: { params: { id: string } }) 
               </div>
             </CardContent>
           </Card>
+
+          {/* Bottom Sidebar Ad */}
+          <AdSlot slot="sidebar" />
         </div>
       </div>
     </div>

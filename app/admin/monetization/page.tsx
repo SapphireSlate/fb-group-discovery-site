@@ -9,9 +9,18 @@ import { AnalyticsPeriodSelector } from '../analytics/components/analytics-perio
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { FileTextIcon, PieChartIcon, UsersIcon } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export default function MonetizationDashboard() {
   const [period, setPeriod] = useState(30);
+  const [creatingAd, setCreatingAd] = useState(false);
+  const [slot, setSlot] = useState<'top_banner'|'sidebar'|'in_feed'>('sidebar');
+  const [creativeType, setCreativeType] = useState<'image'|'html'>('image');
+  const [creativeUrl, setCreativeUrl] = useState('');
+  const [html, setHtml] = useState('');
+  const [targetUrl, setTargetUrl] = useState('');
+  const [message, setMessage] = useState<string|null>(null);
 
   return (
     <div className="container mx-auto py-8">
@@ -91,6 +100,7 @@ export default function MonetizationDashboard() {
           <TabsTrigger value="revenue">Revenue Analytics</TabsTrigger>
           <TabsTrigger value="subscribers">Subscriber Analytics</TabsTrigger>
           <TabsTrigger value="promotions">Promotion Analytics</TabsTrigger>
+          <TabsTrigger value="ads">Ad Campaigns</TabsTrigger>
         </TabsList>
         
         <TabsContent value="revenue">
@@ -131,6 +141,76 @@ export default function MonetizationDashboard() {
                 <p>Promotion analytics coming soon</p>
                 <p className="text-sm">We're working on enhanced promotion metrics for a future update.</p>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="ads">
+          <Card>
+            <CardHeader>
+              <CardTitle>Create Test Ad (Admin)</CardTitle>
+              <CardDescription>Quickly seed a display ad for validation</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="mb-1 block">Slot</Label>
+                  <select className="w-full border rounded h-10 px-2" value={slot} onChange={(e)=>setSlot(e.target.value as any)}>
+                    <option value="top_banner">Top Banner</option>
+                    <option value="sidebar">Sidebar</option>
+                    <option value="in_feed">In Feed</option>
+                  </select>
+                </div>
+                <div>
+                  <Label className="mb-1 block">Creative Type</Label>
+                  <select className="w-full border rounded h-10 px-2" value={creativeType} onChange={(e)=>setCreativeType(e.target.value as any)}>
+                    <option value="image">Image</option>
+                    <option value="html">HTML</option>
+                  </select>
+                </div>
+                {creativeType === 'image' ? (
+                  <div className="md:col-span-2">
+                    <Label className="mb-1 block">Creative URL</Label>
+                    <Input value={creativeUrl} onChange={(e)=>setCreativeUrl(e.target.value)} placeholder="https://..." />
+                  </div>
+                ) : (
+                  <div className="md:col-span-2">
+                    <Label className="mb-1 block">HTML</Label>
+                    <textarea className="w-full border rounded p-2 h-28" value={html} onChange={(e)=>setHtml(e.target.value)} />
+                  </div>
+                )}
+                <div className="md:col-span-2">
+                  <Label className="mb-1 block">Target URL</Label>
+                  <Input value={targetUrl} onChange={(e)=>setTargetUrl(e.target.value)} placeholder="https://..." />
+                </div>
+                <div className="md:col-span-2 flex gap-2 items-center">
+                  <Button disabled={creatingAd} onClick={async ()=>{
+                    try{
+                      setCreatingAd(true); setMessage(null);
+                      const body:any={ slot, creative_type: creativeType, target_url: targetUrl, status:'approved' };
+                      if(creativeType==='image') body.creative_url=creativeUrl; else body.html=html;
+                      const res=await fetch('/api/ads/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+                      const j=await res.json();
+                      setMessage(j?.message||'Saved');
+                    }catch(e:any){ setMessage(e?.message||'Error'); } finally{ setCreatingAd(false); }
+                  }}>Create Approved Ad</Button>
+                  {message && <span className="text-sm text-muted-foreground">{message}</span>}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Existing Ads</CardTitle>
+              <CardDescription>Preview/debug approved and pending ads</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" onClick={async()=>{
+                const res = await fetch('/api/ads/admin');
+                const j = await res.json();
+                alert(JSON.stringify(j?.data?.slice(0,5) || [], null, 2));
+              }}>Refresh & Preview</Button>
             </CardContent>
           </Card>
         </TabsContent>
