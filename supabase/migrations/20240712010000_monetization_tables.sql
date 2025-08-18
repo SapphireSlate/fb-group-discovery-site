@@ -18,11 +18,11 @@ CREATE INDEX IF NOT EXISTS subscriptions_user_id_idx ON public.subscriptions(use
 CREATE INDEX IF NOT EXISTS subscriptions_status_idx ON public.subscriptions(status);
 
 ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
-
+DROP POLICY IF EXISTS "Users can view their own subscriptions" ON public.subscriptions;
+DROP POLICY IF EXISTS "Admin users can view all subscriptions" ON public.subscriptions;
 CREATE POLICY "Users can view their own subscriptions" 
   ON public.subscriptions FOR SELECT 
   USING (auth.uid() = user_id);
-
 CREATE POLICY "Admin users can view all subscriptions" 
   ON public.subscriptions FOR SELECT 
   USING (
@@ -50,7 +50,7 @@ CREATE INDEX IF NOT EXISTS featured_listings_status_idx ON public.featured_listi
 CREATE INDEX IF NOT EXISTS featured_listings_date_idx ON public.featured_listings(end_date);
 
 ALTER TABLE public.featured_listings ENABLE ROW LEVEL SECURITY;
-
+DROP POLICY IF EXISTS "Featured listings are viewable by everyone" ON public.featured_listings;
 CREATE POLICY "Featured listings are viewable by everyone" 
   ON public.featured_listings FOR SELECT 
   USING (true);
@@ -72,11 +72,11 @@ CREATE INDEX IF NOT EXISTS payment_history_user_id_idx ON public.payment_history
 CREATE INDEX IF NOT EXISTS payment_history_type_idx ON public.payment_history(type);
 
 ALTER TABLE public.payment_history ENABLE ROW LEVEL SECURITY;
-
+DROP POLICY IF EXISTS "Users can view their own payment history" ON public.payment_history;
+DROP POLICY IF EXISTS "Admin users can view all payment history" ON public.payment_history;
 CREATE POLICY "Users can view their own payment history" 
   ON public.payment_history FOR SELECT 
   USING (auth.uid() = user_id);
-
 CREATE POLICY "Admin users can view all payment history" 
   ON public.payment_history FOR SELECT 
   USING (

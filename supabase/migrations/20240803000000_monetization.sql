@@ -15,10 +15,12 @@ CREATE TABLE IF NOT EXISTS public.plans (
 ALTER TABLE public.plans ENABLE ROW LEVEL SECURITY;
 
 -- Everyone can view active plans
+DROP POLICY IF EXISTS "Anyone can view active plans" ON public.plans;
 CREATE POLICY "Anyone can view active plans" ON public.plans
   FOR SELECT USING (is_active = true);
 
 -- Only admins can manage plans
+DROP POLICY IF EXISTS "Admins can manage plans" ON public.plans;
 CREATE POLICY "Admins can manage plans" ON public.plans
   USING (
     (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin'
@@ -45,10 +47,12 @@ CREATE TABLE IF NOT EXISTS public.subscriptions (
 ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
 
 -- Users can view their own subscriptions
+DROP POLICY IF EXISTS "Users can view their own subscriptions" ON public.subscriptions;
 CREATE POLICY "Users can view their own subscriptions" ON public.subscriptions
   FOR SELECT USING (user_id = auth.uid());
 
 -- Admins can view all subscriptions
+DROP POLICY IF EXISTS "Admins can view all subscriptions" ON public.subscriptions;
 CREATE POLICY "Admins can view all subscriptions" ON public.subscriptions
   FOR SELECT USING (
     (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin'
@@ -73,10 +77,12 @@ CREATE TABLE IF NOT EXISTS public.payment_history (
 ALTER TABLE public.payment_history ENABLE ROW LEVEL SECURITY;
 
 -- Users can view their own payment history
+DROP POLICY IF EXISTS "Users can view their own payment history" ON public.payment_history;
 CREATE POLICY "Users can view their own payment history" ON public.payment_history
   FOR SELECT USING (user_id = auth.uid());
 
 -- Admins can view all payment history
+DROP POLICY IF EXISTS "Admins can view all payment history" ON public.payment_history;
 CREATE POLICY "Admins can view all payment history" ON public.payment_history
   FOR SELECT USING (
     (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin'
@@ -103,21 +109,25 @@ CREATE TABLE IF NOT EXISTS public.promotions (
 ALTER TABLE public.promotions ENABLE ROW LEVEL SECURITY;
 
 -- Users can view their own promotions
+DROP POLICY IF EXISTS "Users can view their own promotions" ON public.promotions;
 CREATE POLICY "Users can view their own promotions" ON public.promotions
   FOR SELECT USING (user_id = auth.uid());
 
 -- Admins can view and manage all promotions
+DROP POLICY IF EXISTS "Admins can view all promotions" ON public.promotions;
 CREATE POLICY "Admins can view all promotions" ON public.promotions
   FOR SELECT USING (
     (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin'
   );
 
+DROP POLICY IF EXISTS "Admins can update all promotions" ON public.promotions;
 CREATE POLICY "Admins can update all promotions" ON public.promotions
   FOR UPDATE USING (
     (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin'
   );
 
 -- Anyone can view basic promotion info
+DROP POLICY IF EXISTS "Anyone can view active promotion info" ON public.promotions;
 CREATE POLICY "Anyone can view active promotion info" ON public.promotions
   FOR SELECT USING (status = 'active');
 
@@ -181,7 +191,7 @@ SELECT
   s.id,
   s.user_id,
   u.email,
-  u.full_name,
+  u.display_name AS full_name,
   s.plan_id,
   p.name as plan_name,
   p.price_monthly,

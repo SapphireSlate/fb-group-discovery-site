@@ -45,9 +45,9 @@ SELECT
     COUNT(u.id) AS new_users,
     COUNT(DISTINCT g.id) AS groups_submitted,
     COUNT(DISTINCT r.id) AS reviews_submitted,
-    COUNT(DISTINCT v.id) AS votes_cast,
+    COUNT(DISTINCT (v.user_id, v.group_id)) AS votes_cast,
     ROUND(COUNT(DISTINCT r.id)::NUMERIC / NULLIF(COUNT(DISTINCT u.id), 0), 2) AS reviews_per_user,
-    ROUND(COUNT(DISTINCT v.id)::NUMERIC / NULLIF(COUNT(DISTINCT u.id), 0), 2) AS votes_per_user
+    ROUND(COUNT(DISTINCT (v.user_id, v.group_id))::NUMERIC / NULLIF(COUNT(DISTINCT u.id), 0), 2) AS votes_per_user
 FROM
     public.users u
 LEFT JOIN

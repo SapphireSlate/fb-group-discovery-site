@@ -34,6 +34,33 @@ export async function requireAuth() {
   return user;
 }
 
+// Check and require that the current user is an admin (based on users.is_admin)
+export async function requireAdmin(): Promise<User> {
+  const user = await requireAuth();
+  const supabase = await createServerClient();
+
+  try {
+    const { data: profile, error } = await supabase
+      .from('users')
+      .select('is_admin')
+      .eq('auth_id', user.id)
+      .single();
+
+    if (error) {
+      console.error('Error checking admin status:', error.message);
+    }
+
+    if (!profile?.is_admin) {
+      redirect('/');
+    }
+
+    return user;
+  } catch (error) {
+    console.error('Unexpected error checking admin status:', error);
+    redirect('/');
+  }
+}
+
 // Create a serverside session from the code
 export async function createServerSupabaseClient() {
   const cookieStore = cookies();

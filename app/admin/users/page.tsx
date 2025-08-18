@@ -1,5 +1,4 @@
-import { redirect } from 'next/navigation';
-import { requireAuth } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth';
 import { createServerClient } from '@/lib/supabase';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
@@ -32,25 +31,13 @@ interface SubmissionCount {
 }
 
 export default async function AdminUsersPage() {
-  // Check if user is authorized to access admin panel
-  const user = await requireAuth();
+  // Require admin access
+  const user = await requireAdmin();
   
   const cookieStore = cookies();
   const supabase = await createServerClient(cookieStore);
   
-  // Get the user's profile to check admin status
-  const { data: profile } = await supabase
-    .from('users')
-    .select('*')
-    .eq('auth_id', user.id)
-    .single();
-  
-  // Check admin status (simple role check - in production you'd have a proper roles table)
-  const isAdmin = profile?.email?.endsWith('@example.com'); // Replace with your actual admin check
-  
-  if (!isAdmin) {
-    redirect('/'); // Redirect non-admins
-  }
+  // user is guaranteed admin by requireAdmin
   
   // Fetch users
   const { data: users } = await supabase

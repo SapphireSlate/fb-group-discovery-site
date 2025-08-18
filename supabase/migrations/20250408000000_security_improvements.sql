@@ -148,7 +148,11 @@ CREATE POLICY "Only admins can view all reports"
 -- Users can view their own reports
 CREATE POLICY "Users can view their own reports"
   ON reports FOR SELECT
-  USING (auth.uid() IN (SELECT auth_id FROM public.users WHERE id = reported_by));
+  USING (
+    auth.uid() IN (
+      SELECT auth_id FROM public.users WHERE id = user_id
+    )
+  );
 
 -- Authenticated users can create reports
 CREATE POLICY "Authenticated users can create reports"

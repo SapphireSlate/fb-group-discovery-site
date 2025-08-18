@@ -1,13 +1,25 @@
 -- Add verification status type and columns to groups table
 ALTER TABLE public.groups 
-    ADD COLUMN verification_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
-    ADD COLUMN verified_by UUID REFERENCES auth.users(id) DEFAULT NULL,
-    ADD COLUMN verification_notes TEXT DEFAULT NULL,
-    ADD COLUMN verification_status TEXT NOT NULL DEFAULT 'pending'
-        CHECK (verification_status IN ('pending', 'verified', 'rejected', 'needs_review', 'flagged'));
+    ADD COLUMN IF NOT EXISTS verification_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS verified_by UUID REFERENCES auth.users(id) DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS verification_notes TEXT DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS verification_status TEXT DEFAULT 'pending';
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'groups_verification_status_check'
+      AND conrelid = 'public.groups'::regclass
+  ) THEN
+    ALTER TABLE public.groups
+      ADD CONSTRAINT groups_verification_status_check
+      CHECK (verification_status IN ('pending', 'verified', 'rejected', 'needs_review', 'flagged'));
+  END IF;
+END$$;
 
 -- Create an index on verification_status for faster queries
-CREATE INDEX idx_groups_verification_status ON public.groups(verification_status);
+CREATE INDEX IF NOT EXISTS idx_groups_verification_status ON public.groups(verification_status);
 
 -- Update existing groups based on is_verified to maintain backward compatibility
 UPDATE public.groups 
@@ -17,7 +29,7 @@ SET verification_status = CASE
 END;
 
 -- Create verification logs table to track history of verifications
-CREATE TABLE public.verification_logs (
+CREATE TABLE IF NOT EXISTS public.verification_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     group_id UUID NOT NULL REFERENCES public.groups(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES auth.users(id),
@@ -28,6 +40,10 @@ CREATE TABLE public.verification_logs (
 
 -- Enable RLS on verification_logs
 ALTER TABLE public.verification_logs ENABLE ROW LEVEL SECURITY;
+
+-- Make policy creation idempotent
+DROP POLICY IF EXISTS "Allow admins to view verification logs" ON public.verification_logs;
+DROP POLICY IF EXISTS "Allow admins to insert verification logs" ON public.verification_logs;
 
 -- Create policies for verification_logs
 CREATE POLICY "Allow admins to view verification logs"

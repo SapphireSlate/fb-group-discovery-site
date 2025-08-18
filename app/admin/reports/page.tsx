@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getReports, getReportCounts, isAdmin } from '@/lib/report-queries';
+import { getReports, getReportCounts } from '@/lib/report-queries';
+import { requireAdmin } from '@/lib/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -10,22 +11,20 @@ import { AlertTriangle, CheckCircle, Clock, Flag, XCircle } from 'lucide-react';
 import ReportActionButtons from './report-action-buttons';
 
 interface PageProps {
-  searchParams: {
+  searchParams: Promise<{
     status?: string;
     page?: string;
-  };
+  }>;
 }
 
 export default async function ReportsPage({ searchParams }: PageProps) {
-  // Check if user is admin
-  const adminAccess = await isAdmin();
-  if (!adminAccess) {
-    redirect('/');
-  }
+  // Require admin access
+  await requireAdmin();
 
   // Process query parameters
-  const status = searchParams.status as 'pending' | 'in_review' | 'resolved' | 'dismissed' | undefined;
-  const page = parseInt(searchParams.page || '1', 10);
+  const params = await searchParams;
+  const status = params.status as 'pending' | 'in_review' | 'resolved' | 'dismissed' | undefined;
+  const page = parseInt(params.page || '1', 10);
   const limit = 10;
   const offset = (page - 1) * limit;
 

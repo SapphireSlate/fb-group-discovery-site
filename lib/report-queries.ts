@@ -94,15 +94,14 @@ export async function isAdmin() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return false;
 
-  // Check if user is an admin
+  // Check if user is an admin via users.is_admin
   const { data: userData, error } = await supabase
     .from('users')
-    .select('email, role')
+    .select('is_admin')
     .eq('auth_id', session.user.id)
     .single();
 
   if (error || !userData) return false;
 
-  // Check if admin based on role or email domain
-  return userData.role === 'admin' || userData.email?.endsWith('@example.com');
+  return Boolean(userData.is_admin);
 } 

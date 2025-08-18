@@ -30,7 +30,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     // Get user ID
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('id, email, role')
+      .select('id, is_admin')
       .eq('auth_id', session.user.id)
       .single();
     
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     }
     
     // Check if user has permission to view this report (own report or admin)
-    const isAdmin = userData.role === 'admin' || userData.email?.endsWith('@example.com');
+    const isAdmin = Boolean(userData.is_admin);
     if (report.user_id !== userData.id && !isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
@@ -87,7 +87,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     // Get user ID
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('id, email, role')
+      .select('id, is_admin')
       .eq('auth_id', session.user.id)
       .single();
     
@@ -112,7 +112,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     }
     
     // Check if user has permission to update this report
-    const isAdmin = userData.role === 'admin' || userData.email?.endsWith('@example.com');
+    const isAdmin = Boolean(userData.is_admin);
     const isOwnPendingReport = currentReport.user_id === userData.id && currentReport.status === 'pending';
     
     if (!isAdmin && !isOwnPendingReport) {
@@ -199,7 +199,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     // Get user ID
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('id, email, role')
+      .select('id, is_admin')
       .eq('auth_id', session.user.id)
       .single();
     
@@ -224,7 +224,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     }
     
     // Check if user has permission to delete this report
-    const isAdmin = userData.role === 'admin' || userData.email?.endsWith('@example.com');
+    const isAdmin = Boolean(userData.is_admin);
     const isOwnPendingReport = currentReport.user_id === userData.id && currentReport.status === 'pending';
     
     if (!isAdmin && !isOwnPendingReport) {

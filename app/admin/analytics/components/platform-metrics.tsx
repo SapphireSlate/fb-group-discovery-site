@@ -122,7 +122,13 @@ export default function PlatformMetrics({ period }: PlatformMetricsProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-      {metrics.map((metric) => (
+      {metrics.map((metric) => {
+        const rawValue = typeof metric.value === 'number' ? metric.value : 0;
+        const safeValue = Number.isFinite(rawValue) ? rawValue : 0;
+        const rawChange = typeof metric.change_percentage === 'number' ? metric.change_percentage : 0;
+        const safeChange = Number.isFinite(rawChange) ? rawChange : 0;
+
+        return (
         <Card key={metric.metric} className="shadow-sm">
           <CardContent className="p-6">
             <div className="flex justify-between items-start">
@@ -132,22 +138,22 @@ export default function PlatformMetrics({ period }: PlatformMetricsProps) {
                 </p>
                 <h3 className="text-2xl font-bold">
                   {metric.metric === 'average_rating' 
-                    ? metric.value.toFixed(1)
-                    : metric.value.toLocaleString()}
+                    ? safeValue.toFixed(1)
+                    : safeValue.toLocaleString()}
                 </h3>
                 <div className="flex items-center mt-1">
-                  {metric.change_percentage > 0 ? (
+                  {safeChange > 0 ? (
                     <>
                       <ArrowUpIcon className="h-3 w-3 text-green-600 mr-1" />
                       <span className="text-xs text-green-600">
-                        {Math.abs(metric.change_percentage).toFixed(1)}% increase
+                        {Math.abs(safeChange).toFixed(1)}% increase
                       </span>
                     </>
-                  ) : metric.change_percentage < 0 ? (
+                  ) : safeChange < 0 ? (
                     <>
                       <ArrowDownIcon className="h-3 w-3 text-red-600 mr-1" />
                       <span className="text-xs text-red-600">
-                        {Math.abs(metric.change_percentage).toFixed(1)}% decrease
+                        {Math.abs(safeChange).toFixed(1)}% decrease
                       </span>
                     </>
                   ) : (
@@ -161,7 +167,8 @@ export default function PlatformMetrics({ period }: PlatformMetricsProps) {
             </div>
           </CardContent>
         </Card>
-      ))}
+        );
+      })}
     </div>
   );
 } 

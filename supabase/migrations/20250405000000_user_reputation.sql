@@ -12,6 +12,9 @@ CREATE TABLE IF NOT EXISTS badges (
   display_order INTEGER NOT NULL DEFAULT 0  -- For controlling display order
 );
 
+-- Ensure name is unique so we can upsert idempotently
+CREATE UNIQUE INDEX IF NOT EXISTS badges_name_unique ON badges(name);
+
 -- Create user_badges table for tracking which users have which badges
 CREATE TABLE IF NOT EXISTS user_badges (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -285,22 +288,16 @@ VALUES
   ('Group Guru', 'Submitted 5 groups', 'badge-group-guru.svg', 1, 25, 'contribution', '{"action": "submit_group", "count": 5}', 3),
   ('Group Expert', 'Submitted 25 groups', 'badge-group-expert.svg', 2, 100, 'contribution', '{"action": "submit_group", "count": 25}', 4),
   ('Group Master', 'Submitted 100 groups', 'badge-group-master.svg', 3, 500, 'contribution', '{"action": "submit_group", "count": 100}', 5),
-  
   ('First Review', 'Wrote your first review', 'badge-first-review.svg', 1, 10, 'contribution', '{"action": "write_review", "count": 1}', 6),
   ('Reviewer', 'Wrote 5 reviews', 'badge-reviewer.svg', 1, 25, 'contribution', '{"action": "write_review", "count": 5}', 7),
   ('Expert Reviewer', 'Wrote 25 reviews', 'badge-expert-reviewer.svg', 2, 100, 'contribution', '{"action": "write_review", "count": 25}', 8),
   ('Master Reviewer', 'Wrote 100 reviews', 'badge-master-reviewer.svg', 3, 500, 'contribution', '{"action": "write_review", "count": 100}', 9),
-  
   ('Helpful Voter', 'Cast 10 votes on groups', 'badge-helpful-voter.svg', 1, 15, 'engagement', '{"action": "vote", "count": 10}', 10),
   ('Active Voter', 'Cast 50 votes on groups', 'badge-active-voter.svg', 2, 50, 'engagement', '{"action": "vote", "count": 50}', 11),
-  
   ('Quality Guardian', 'Reported your first inappropriate group', 'badge-quality-guardian.svg', 1, 5, 'moderation', '{"action": "report_group", "count": 1}', 12),
   ('Group Watcher', 'Reported 5 inappropriate groups', 'badge-group-watcher.svg', 2, 25, 'moderation', '{"action": "report_group", "count": 5}', 13),
-  
   ('Profile Perfectionist', 'Completed your user profile', 'badge-profile-perfectionist.svg', 1, 5, 'profile', '{"action": "complete_profile"}', 14),
-  
   ('Rising Star', 'Reached 100 reputation points', 'badge-rising-star.svg', 1, 0, 'reputation', '{"action": "reputation", "minimum": 100}', 15),
   ('Community Star', 'Reached 500 reputation points', 'badge-community-star.svg', 2, 0, 'reputation', '{"action": "reputation", "minimum": 500}', 16),
-  ('Community Leader', 'Reached 1000 reputation points', 'badge-community-leader.svg', 3, 0, 'reputation', '{"action": "reputation", "minimum": 1000}', 17);
-  
-ON CONFLICT (id) DO NOTHING; 
+  ('Community Leader', 'Reached 1000 reputation points', 'badge-community-leader.svg', 3, 0, 'reputation', '{"action": "reputation", "minimum": 1000}', 17)
+ON CONFLICT (name) DO NOTHING;

@@ -61,8 +61,8 @@ export function UserNav() {
     router.refresh();
   };
   
-  // Check if user is an admin (simple check - in production use a proper roles system)
-  const isAdmin = profile?.email?.endsWith('@example.com');
+  // Check if user is an admin
+  const isAdmin = Boolean(profile?.is_admin);
 
   if (loading) {
     return (

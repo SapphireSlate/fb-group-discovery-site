@@ -1,36 +1,28 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
-import { Database } from '@/lib/database.types';
+import { createServerClient } from '@/lib/supabase';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const days = parseInt(searchParams.get('days') || '90', 10);
     
-    // Create Supabase client
-    const cookieStore = cookies();
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: false,
-      }
-    });
+    // Create server-side Supabase client (with cookies)
+    const supabase = await createServerClient();
     
-    // Check if user is admin
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    // Require authenticated user
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
+    // Check admin via users.is_admin using auth_id
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('role')
-      .eq('id', user.id)
+      .select('is_admin')
+      .eq('auth_id', session.user.id)
       .single();
-      
-    if (userError || userData?.role !== 'admin') {
+    
+    if (userError || !userData?.is_admin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     

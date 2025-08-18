@@ -19,6 +19,25 @@ export async function middleware(request: NextRequest) {
   });
 
   // Add security headers
+  const isDev = process.env.NODE_ENV !== 'production';
+
+  // Relax CSP in development to allow Next.js HMR (unsafe-eval) and websockets
+  const cspDev =
+    "default-src 'self' blob: data:; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+    "font-src 'self' https://fonts.gstatic.com; " +
+    "img-src 'self' data: blob: https://*.supabase.co; " +
+    "connect-src 'self' https://*.supabase.co https://api.vercel.com ws: wss: http://localhost:* http://127.0.0.1:*;";
+
+  const cspProd =
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+    "font-src 'self' https://fonts.gstatic.com; " +
+    "img-src 'self' data: blob: https://*.supabase.co; " +
+    "connect-src 'self' https://*.supabase.co https://api.vercel.com;";
+
   const securityHeaders = {
     'X-DNS-Prefetch-Control': 'on',
     'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
@@ -27,7 +46,7 @@ export async function middleware(request: NextRequest) {
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'origin-when-cross-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-    'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co https://api.vercel.com;"
+    'Content-Security-Policy': isDev ? cspDev : cspProd,
   };
 
   // Apply security headers to response

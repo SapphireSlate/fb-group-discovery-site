@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { requireAuth } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth';
 import { createServerClient } from '@/lib/supabase';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
@@ -35,24 +35,11 @@ interface UserDetailPageProps {
 export default async function UserDetailPage({ params }: UserDetailPageProps) {
   const { id } = params;
   
-  // Check if user is authorized to access admin panel
-  const adminUser = await requireAuth();
+  // Require admin access
+  const adminUser = await requireAdmin();
   
   const supabase = await createServerClient();
-  
-  // Get the admin user's profile to check admin status
-  const { data: adminProfile } = await supabase
-    .from('users')
-    .select('*')
-    .eq('auth_id', adminUser.id)
-    .single();
-  
-  // Check admin status
-  const isAdmin = adminProfile?.email?.endsWith('@example.com'); // Replace with your actual admin check
-  
-  if (!isAdmin) {
-    redirect('/'); // Redirect non-admins
-  }
+  // admin is guaranteed by requireAdmin
   
   // Fetch the user details
   const { data: user, error } = await supabase

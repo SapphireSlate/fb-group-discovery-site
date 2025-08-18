@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { requireAuth } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth';
 import { createServerClient } from '@/lib/supabase';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
@@ -15,24 +15,11 @@ interface EditCategoryPageProps {
 }
 
 export default async function EditCategoryPage({ params }: EditCategoryPageProps) {
-  // Check if user is authorized
-  const user = await requireAuth();
+  // Require admin access
+  const user = await requireAdmin();
   
   const supabase = await createServerClient();
-  
-  // Get the user's profile to check admin status
-  const { data: profile } = await supabase
-    .from('users')
-    .select('*')
-    .eq('auth_id', user.id)
-    .single();
-  
-  // Check admin status
-  const isAdmin = profile?.is_admin || false;
-  
-  if (!isAdmin) {
-    redirect('/'); // Redirect non-admins
-  }
+  // admin is guaranteed by requireAdmin
   
   // Fetch the category
   const { data: category, error } = await supabase

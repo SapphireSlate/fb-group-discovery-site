@@ -1,3 +1,5 @@
+import '@testing-library/jest-dom';
+
 // Optional: configure or set up a testing framework before each test.
 // If you delete this file, remove `setupFilesAfterEnv` from `jest.config.js`
 
@@ -69,3 +71,27 @@ global.matchMedia = global.matchMedia || function() {
 beforeEach(() => {
   jest.clearAllMocks();
 }); 
+// Mock next/headers cookies API for server-side code in tests
+jest.mock('next/headers', () => ({
+  cookies: jest.fn(() => {
+    const store = new Map();
+    return {
+      get: (name) => {
+        const value = store.get(name);
+        return value !== undefined ? { name, value } : undefined;
+      },
+      set: ({ name, value }) => { store.set(name, value); },
+    };
+  }),
+}));
+// Polyfill Response.json for node test envs
+try {
+  // @ts-ignore
+  if (typeof Response !== 'undefined' && typeof Response.json !== 'function') {
+    // @ts-ignore
+    Response.json = (data, init) => new Response(JSON.stringify(data), {
+      headers: { 'content-type': 'application/json' },
+      ...(init || {}),
+    });
+  }
+} catch {}

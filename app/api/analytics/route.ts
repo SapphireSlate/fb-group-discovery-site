@@ -44,15 +44,38 @@ export async function GET(request: NextRequest) {
         break;
         
       case 'trending':
-        // Get trending groups
-        const { data: trendingData, error: trendingError } = await supabase
-          .rpc('get_trending_groups', { 
-            p_days_back: daysBack,
-            p_limit: limit
-          });
-        
-        if (trendingError) throw trendingError;
-        analyticsData = trendingData;
+        // Get trending groups via RPC; fall back to a simple query if RPC signature mismatches
+        {
+          const { data: trendingData, error: trendingError } = await supabase
+            .rpc('get_trending_groups', { 
+              p_days_back: daysBack,
+              p_limit: limit
+            });
+          
+          if (trendingError) {
+            // Fallback: pick top groups by recent view_count as a simple heuristic
+            const { data: fallbackData, error: fallbackError } = await supabase
+              .from('groups')
+              .select('id, name, view_count, upvotes, downvotes')
+              .order('view_count', { ascending: false })
+              .limit(limit);
+            if (fallbackError) throw fallbackError;
+            analyticsData = (fallbackData || []).map((g) => ({
+              group_id: g.id,
+              group_name: g.name,
+              view_count: g.view_count || 0,
+              view_growth_percentage: 0,
+              upvotes: g.upvotes || 0,
+              downvotes: g.downvotes || 0,
+              vote_growth_percentage: 0,
+              review_count: 0,
+              review_growth_percentage: 0,
+              trend_score: (g.view_count || 0) + ((g.upvotes || 0) - (g.downvotes || 0)) * 2,
+            }));
+          } else {
+            analyticsData = trendingData;
+          }
+        }
         break;
         
       case 'growth':

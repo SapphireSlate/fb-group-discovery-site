@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { requireAuth } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth';
 import { createServerClient } from '@/lib/supabase';
 import { cookies } from 'next/headers';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,24 +22,11 @@ import ReportsChart from './reports-chart';
 import ReasonsPieChart from './reasons-pie-chart';
 
 export default async function ReportsDashboardPage() {
-  // Check if user is authorized to access admin panel
-  const user = await requireAuth();
+  // Require admin access
+  const user = await requireAdmin();
   
   const supabase = await createServerClient();
-  
-  // Get the user's profile to check admin status
-  const { data: profile } = await supabase
-    .from('users')
-    .select('*')
-    .eq('auth_id', user.id)
-    .single();
-  
-  // Check admin status
-  const isAdmin = profile?.email?.endsWith('@example.com'); // Replace with your actual admin check
-  
-  if (!isAdmin) {
-    redirect('/'); // Redirect non-admins
-  }
+  // admin is guaranteed by requireAdmin
   
   // Fetch report counts by status
   const { data: reportCounts, error: countsError } = await supabase
@@ -70,14 +57,20 @@ export default async function ReportsDashboardPage() {
   }
   
   // Fetch report counts by reason
-  const { data: reasonCounts, error: reasonsError } = await supabase
-    .from('reports')
-    .select('reason, count(*)')
-    .group('reason')
-    .then(({ data, error }) => {
-      if (error) throw error;
-      return { data, error: null };
+  const { data: reasonCounts, error: reasonsError } = await (async () => {
+    const { data, error } = await supabase
+      .from('reports')
+      .select('reason')
+      .then(({ data, error }) => ({ data, error }));
+    if (error) return { data: null as any, error };
+    const countsMap: Record<string, number> = {};
+    data.forEach((row: any) => {
+      const key = row.reason ?? 'unknown';
+      countsMap[key] = (countsMap[key] || 0) + 1;
     });
+    const result = Object.entries(countsMap).map(([reason, count]) => ({ reason, count }));
+    return { data: result as any, error: null };
+  })();
     
   if (reasonsError) {
     console.error('Error fetching reason counts:', reasonsError);

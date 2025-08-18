@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
     // Check if user is admin
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('id, email, role')
+      .select('id, is_admin')
       .eq('auth_id', session.user.id)
       .single();
     
@@ -135,8 +135,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
-    // Simple admin check (for demo purposes)
-    const isAdmin = userData.role === 'admin' || userData.email?.endsWith('@example.com');
+    // Admin check via users.is_admin
+    const isAdmin = Boolean(userData.is_admin);
     
     if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

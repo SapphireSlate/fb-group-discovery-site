@@ -46,13 +46,15 @@ export default async function EditReviewPage({
     notFound();
   }
 
-  // Check if user owns this review
+  // Check if user owns this review; if not, allow admins
   if (review.user_id !== profile.id) {
-    // Check if admin (simplified)
-    const isAdmin = user.email?.endsWith('@example.com');
-    
-    if (!isAdmin) {
-      // Redirect to the group page if not authorized
+    const { data: adminCheck } = await supabase
+      .from('users')
+      .select('is_admin')
+      .eq('auth_id', user.id)
+      .single();
+
+    if (!adminCheck?.is_admin) {
       redirect(`/group/${review.group_id}`);
     }
   }
