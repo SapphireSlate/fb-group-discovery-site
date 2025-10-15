@@ -50,14 +50,9 @@ export function Recaptcha({
     );
   };
 
-  // Handle case where siteKey is not available
+  // Handle case where siteKey is not available - skip reCAPTCHA silently
   if (!siteKey) {
-    console.error('Missing NEXT_PUBLIC_RECAPTCHA_SITE_KEY environment variable');
-    return (
-      <div className="text-red-500 text-sm">
-        reCAPTCHA configuration error. Please contact site administrator.
-      </div>
-    );
+    return null;
   }
 
   return (

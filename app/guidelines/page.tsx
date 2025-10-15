@@ -117,8 +117,8 @@ export default function GuidelinesPage() {
                   <div>
                     <h3 className="text-lg font-medium">3. Report Violations</h3>
                     <p className="text-muted-foreground">
-                      If you encounter content that violates these guidelines, please report it to our 
-                      moderation team.
+                      If you encounter content that violates these guidelines, please report it using
+                      the report button on the respective page.
                     </p>
                   </div>
                   
@@ -135,9 +135,8 @@ export default function GuidelinesPage() {
               <section>
                 <h2 className="text-2xl font-semibold mb-4">Consequences of Violations</h2>
                 <p className="text-muted-foreground">
-                  Violations of these guidelines may result in content removal, warnings, or in severe or 
-                  repeated cases, account suspension or termination. Our moderation team has the final say 
-                  in interpreting and enforcing these guidelines.
+                  Violations of these guidelines may result in content removal, warnings, or in severe or
+                  repeated cases, account suspension or termination.
                 </p>
               </section>
               
@@ -152,8 +151,8 @@ export default function GuidelinesPage() {
               <section>
                 <h2 className="text-2xl font-semibold mb-4">Contact Us</h2>
                 <p className="text-muted-foreground">
-                  If you have questions about these guidelines or want to report a violation, 
-                  please contact our support team at <span className="font-medium">support@fbgroupfinder.com</span>.
+                  If you have questions about these guidelines, please contact us at
+                  <span className="font-medium">hello@groupfinder.com</span>.
                 </p>
               </section>
             </div>

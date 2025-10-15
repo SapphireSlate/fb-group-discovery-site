@@ -12,6 +12,7 @@ import { DiscoverFilters, SortSelector } from './filters'
 import Link from 'next/link'
 import { Navbar } from "@/components/navbar"
 import Footer from "@/components/footer"
+import AdSlot from '@/components/ads/AdSlot'
 
 type Group = Database['public']['Tables']['groups']['Row']
 type Category = Database['public']['Tables']['categories']['Row']
@@ -213,6 +214,11 @@ export default async function DiscoverPage({
             
             {/* Main content */}
             <div className="flex-1">
+              {/* Top Banner Ad */}
+              <div className="mb-6">
+                <AdSlot slot="top_banner" className="w-full min-h-[90px] bg-gray-50 rounded-lg flex items-center justify-center" />
+              </div>
+
               {/* Sort and view options */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0 mb-6">
                 <div className="flex items-center">

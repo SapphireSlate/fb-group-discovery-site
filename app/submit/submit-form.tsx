@@ -615,10 +615,12 @@ function validateForm() {
     newErrors.category = 'Category is required';
   }
   
-  if (!captchaToken) {
+  // Only require CAPTCHA if reCAPTCHA is configured
+  const recaptchaEnabled = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY.trim() !== '';
+  if (recaptchaEnabled && !captchaToken) {
     setCaptchaError('Please complete the CAPTCHA verification');
   }
-  
+
   setErrors(newErrors);
-  return Object.keys(newErrors).length === 0 && captchaToken !== null;
+  return Object.keys(newErrors).length === 0 && (!recaptchaEnabled || captchaToken !== null);
 } 

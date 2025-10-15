@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Mail, MapPin, Phone } from "lucide-react"
+import { Mail } from "lucide-react"
 
 export default function ContactPage() {
   return (
@@ -102,35 +102,13 @@ export default function ContactPage() {
                       </div>
                       <div>
                         <h3 className="font-medium">Email</h3>
-                        <p className="text-muted-foreground">support@fbgroupfinder.com</p>
+                        <p className="text-muted-foreground">hello@groupfinder.com</p>
                         <p className="text-sm text-muted-foreground mt-1">We aim to respond within 24 hours</p>
                       </div>
                     </div>
                     
-                    <div className="flex items-start space-x-3">
-                      <div className="bg-primary/10 p-2 rounded-full">
-                        <Phone className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium">Phone</h3>
-                        <p className="text-muted-foreground">(555) 123-4567</p>
-                        <p className="text-sm text-muted-foreground mt-1">Mon-Fri, 9am-5pm ET</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-start space-x-3">
-                      <div className="bg-primary/10 p-2 rounded-full">
-                        <MapPin className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium">Office</h3>
-                        <p className="text-muted-foreground">
-                          123 Community Ave<br />
-                          Suite 200<br />
-                          San Francisco, CA 94158
-                        </p>
-                      </div>
-                    </div>
+
+
                     
                     <div className="pt-4 border-t">
                       <h3 className="font-medium mb-2">Help Resources</h3>

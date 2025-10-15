@@ -121,7 +121,7 @@ export default function HelpPage() {
                       <li>Review and submit</li>
                     </ol>
                     <p className="text-muted-foreground mt-4">
-                      Your submission will be reviewed by our team before being added to the directory.
+                      Your submission will be reviewed before being added to the directory.
                     </p>
                   </div>
                   
@@ -186,7 +186,7 @@ export default function HelpPage() {
                   <div className="bg-card p-6 rounded-lg border">
                     <h3 className="text-xl font-medium mb-3">I have a feature request or found a bug. Where can I report it?</h3>
                     <p className="text-muted-foreground">
-                      We appreciate your feedback! Please contact us at <span className="font-medium">support@fbgroupfinder.com</span> with 
+                      We appreciate your feedback! Please contact us at <span className="font-medium">hello@groupfinder.com</span> with
                       details about your feature request or the bug you encountered.
                     </p>
                   </div>

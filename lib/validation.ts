@@ -148,11 +148,21 @@ export const reviewSubmissionSchema = z.object({
 /**
  * CAPTCHA validation schema
  */
-export const captchaSchema = z.string()
-  .min(1, "Please complete the CAPTCHA verification");
+// Create conditional captcha schema based on environment configuration
+const createCaptchaSchema = () => {
+  const recaptchaEnabled = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY.trim() !== '';
+
+  if (recaptchaEnabled) {
+    return z.string().min(1, "Please complete the CAPTCHA verification");
+  } else {
+    return z.string().optional();
+  }
+};
+
+export const captchaSchema = createCaptchaSchema();
 
 /**
- * Group submission schema with CAPTCHA
+ * Group submission schema with CAPTCHA (conditional)
  */
 export const groupSubmissionWithCaptchaSchema = groupSubmissionSchema.extend({
   recaptchaToken: captchaSchema
@@ -163,7 +173,11 @@ export const groupSubmissionWithCaptchaSchema = groupSubmissionSchema.extend({
  */
 export const reportSubmissionWithCaptchaSchema = reportSubmissionSchema.extend({
   recaptchaToken: captchaSchema
-});
+}).transform((data) => ({
+  ...data,
+  // Remove recaptchaToken if it's empty/undefined when reCAPTCHA is disabled
+  recaptchaToken: process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ? data.recaptchaToken : undefined
+}));
 
 // User schema
 export const userSchema = z.object({

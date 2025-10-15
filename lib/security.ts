@@ -24,17 +24,20 @@ export async function verifyRecaptcha(token: string, remoteIp?: string): Promise
   hostname?: string;
   errorCodes?: string[];
 }> {
+  // Check if reCAPTCHA is configured
+  const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+  const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+
+  // If reCAPTCHA is not configured, skip verification
+  if (!secretKey || !siteKey || siteKey.trim() === '') {
+    return { success: true };
+  }
+
   if (!token) {
     return { success: false, errorCodes: ['missing-token'] };
   }
 
   try {
-    const secretKey = process.env.RECAPTCHA_SECRET_KEY;
-    
-    if (!secretKey) {
-      console.error('Missing RECAPTCHA_SECRET_KEY environment variable');
-      return { success: false, errorCodes: ['configuration-error'] };
-    }
 
     // Build verification URL params
     const params = new URLSearchParams();

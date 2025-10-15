@@ -4,7 +4,7 @@ export default function Footer() {
   return (
     <footer className="bg-gray-100 border-t">
       <div className="container px-4 md:px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-4">
             <div className="flex items-center">
               <div className="rounded-full bg-primary w-8 h-8 flex items-center justify-center text-primary-foreground font-bold mr-2">
@@ -18,59 +18,8 @@ export default function Footer() {
           </div>
 
           <div>
-            <h3 className="font-semibold mb-4">Explore</h3>
+            <h3 className="font-semibold mb-4">Legal</h3>
             <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="/discover" className="text-muted-foreground hover:text-primary">
-                  Discover Groups
-                </Link>
-              </li>
-              <li>
-                <Link href="/categories" className="text-muted-foreground hover:text-primary">
-                  Categories
-                </Link>
-              </li>
-              <li>
-                <Link href="/trending" className="text-muted-foreground hover:text-primary">
-                  Trending Groups
-                </Link>
-              </li>
-              <li>
-                <Link href="/new" className="text-muted-foreground hover:text-primary">
-                  New Groups
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="font-semibold mb-4">Resources</h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="/help" className="text-muted-foreground hover:text-primary">
-                  Help Center
-                </Link>
-              </li>
-              <li>
-                <Link href="/guidelines" className="text-muted-foreground hover:text-primary">
-                  Community Guidelines
-                </Link>
-              </li>
-              <li>
-                <Link href="/faq" className="text-muted-foreground hover:text-primary">
-                  FAQ
-                </Link>
-              </li>
-              <li>
-                <Link href="/about" className="text-muted-foreground hover:text-primary">
-                  About Us
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="text-muted-foreground hover:text-primary">
-                  Contact Us
-                </Link>
-              </li>
               <li>
                 <Link href="/privacy" className="text-muted-foreground hover:text-primary">
                   Privacy Policy

@@ -138,7 +138,7 @@ export default function FAQPage() {
                         <li>Add optional details like group size and a screenshot</li>
                         <li>Submit for review</li>
                       </ol>
-                      <p className="mt-2">Our team will review your submission before adding it to the directory.</p>
+                      <p className="mt-2">Your submission will be reviewed before adding it to the directory.</p>
                     </AccordionContent>
                   </AccordionItem>
                   
@@ -186,8 +186,7 @@ export default function FAQPage() {
                     <AccordionTrigger>How do I report inappropriate content?</AccordionTrigger>
                     <AccordionContent>
                       If you find a group or review that violates our community guidelines, click the "Report" 
-                      button available on the respective page and provide details about the issue. Our moderation 
-                      team will review the report and take appropriate action.
+                      button available on the respective page and provide details about the issue.
                     </AccordionContent>
                   </AccordionItem>
                   
@@ -195,7 +194,7 @@ export default function FAQPage() {
                     <AccordionTrigger>Where can I get more help?</AccordionTrigger>
                     <AccordionContent>
                       If you have questions that aren't answered here, please visit our <Link href="/help" className="text-primary hover:underline">Help Center</Link> for 
-                      more detailed information or contact our support team at <span className="font-medium">support@fbgroupfinder.com</span>.
+                      more detailed information or contact us at <span className="font-medium">hello@groupfinder.com</span>.
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
